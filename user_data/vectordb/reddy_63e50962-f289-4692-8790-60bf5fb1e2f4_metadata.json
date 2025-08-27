@@ -1,0 +1,9 @@
+{
+  "collection_name": "bot_63e50962_f289_4692_8790_60bf5fb1e2f4_docs",
+  "persist_directory": "user_data\\vectordb\\reddy\\63e50962-f289-4692-8790-60bf5fb1e2f4",
+  "total_documents": 761,
+  "embedding_model": "BAAI/bge-small-en-v1.5",
+  "user_id": "reddy",
+  "bot_id": "63e50962-f289-4692-8790-60bf5fb1e2f4",
+  "saved_at": "2025-08-25T10:23:56.169221"
+}

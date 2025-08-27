@@ -1,0 +1,124 @@
+=== Fees and Scholarships — VIT-AP University ===
+
+=== OVERVIEW ===
+This document summarizes first-year tuition, caution deposits, total fees, and merit scholarships for select VIT-AP University programmes. Amounts are in INR and may be category-dependent where indicated.
+
+=== BTECH_PROGRAMME ===
+category: 1
+tuition_fee: 195000
+caution_deposit: 3000
+total_first_year: 198000
+notes:
+  - Tuition fee shown “after concession”.
+
+=== INTEGRATED_MTECH_CSE_VIRTUSA ===
+table_columns: [category, tuition_fee, caution_deposit, total_first_year]
+rows:
+  - {category: 1, tuition_fee: 120000, caution_deposit: 3000, total_first_year: 123000}
+  - {category: 2, tuition_fee: 190000, caution_deposit: 3000, total_first_year: 193000}
+  - {category: 3, tuition_fee: 230000, caution_deposit: 3000, total_first_year: 233000}
+  - {category: 4, tuition_fee: 275000, caution_deposit: 3000, total_first_year: 278000}
+  - {category: 5, tuition_fee: 295000, caution_deposit: 3000, total_first_year: 298000}
+
+=== INTEGRATED_MTECH_SOFTWARE_ENGINEERING ===
+table_columns: [category, tuition_fee, caution_deposit, total_first_year]
+rows:
+  - {category: 1, tuition_fee: 120000, caution_deposit: 2000, total_first_year: 122000}
+  - {category: 2, tuition_fee: 190000, caution_deposit: 2000, total_first_year: 192000}
+  - {category: 3, tuition_fee: 230000, caution_deposit: 2000, total_first_year: 232000}
+  - {category: 4, tuition_fee: 275000, caution_deposit: 2000, total_first_year: 277000}
+  - {category: 5, tuition_fee: 295000, caution_deposit: 2000, total_first_year: 297000}
+
+=== MTECH_VLSI_DESIGN ===
+categories:
+  - {category: 1, tuition_fee: 190000, caution_deposit: 3000, total_first_year: 193000}
+  - {category: 2, tuition_fee: 299000, caution_deposit: 3000, total_first_year: 302000}
+
+=== MSC_DATA_SCIENCE ===
+categories:
+  - {category: 1, tuition_fee: 80000, caution_deposit: 3000, total_first_year: 83000}
+  - {category: 2, tuition_fee: 98000, caution_deposit: 3000, total_first_year: 101000}
+
+=== DUAL_DEGREE_BSC_MSC_DATA_SCIENCE ===
+tuition_fee_per_annum_years_1_to_3: 55000
+caution_deposit: 3000
+total_first_year: 58000
+
+=== MSC_PHYSICS_NOPO ===
+tuition_fee: 60000
+caution_deposit: 3000
+total_first_year: 63000
+
+=== MSC_CHEMISTRY_MKCI ===
+tuition_fee: 60000
+caution_deposit: 3000
+total_first_year: 63000
+
+=== BBA_PROGRAMME ===
+table_columns: [category, tuition_fee, caution_deposit, total_first_year]
+rows:
+  - {category: 1, tuition_fee: 80000, caution_deposit: 3000, total_first_year: 83000}
+  - {category: 2, tuition_fee: 100000, caution_deposit: 3000, total_first_year: 103000}
+  - {category: 3, tuition_fee: 125000, caution_deposit: 3000, total_first_year: 128000}
+
+=== LAW_BA_LLB_BBA_LLB_5Y ===
+programmes: [BA LL.B (Hons.), BBA LL.B (Hons.)]
+tuition_fee: 162000
+caution_deposit: 3000
+total_first_year: 164000
+
+=== BCOM_FINANCE ===
+tuition_fee: 55000
+caution_deposit: 3000
+total_first_year: 58000
+
+=== DUAL_DEGREE_BA_MA ===
+tuition_fee: 55000
+caution_deposit: 3000
+total_first_year: 58000
+
+=== PHD_PROGRAMME_PER_ANNUM ===
+internal_full_time:
+  tuition_fee: 40000
+  caution_deposit: 3000
+  total_fee: 43000
+  thesis_fee: 10000
+
+=== MERIT_SCHOLARSHIPS ===
+
+[UG_Programmes_BCom_and_BA]
+- GV_Merit_Scholarship:
+    benefit: 100% scholarship for all years
+    eligibility: any board topper
+- Rajeswari_Ammal_Merit_Scholarship:
+    benefit: 50% scholarship for any district topper
+    additional_benefit_for_girls: +25% (total 75%)
+
+[PG_Non_Engineering_MSc_Physics_and_Chemistry]
+- GV_PG_Merit_Scholarship:
+    benefit: 100% scholarship
+    eligibility: CGPA >= 9.0 or 90%
+- Rajeswari_PG_Merit_Scholarship:
+    benefit: 50% scholarship
+    eligibility: CGPA >= 8.0 or 80%
+    girls_total_benefit: 75%
+
+[Special_Note]
+- MSc_Data_Science_Concession:
+    benefit: 50% fee concession
+    eligibility: >= 90% in UG
+- scholarships_scope: applicable only to Category-1 admissions
+
+=== NOTES ===
+- All amounts are in INR and pertain to the first academic year unless stated otherwise.
+- Category numbers indicate fee slabs; selection criteria may be defined by the university.
+- Fees and scholarship policies are subject to periodic revision; verify with official VIT-AP notifications.
+
+=== SEARCH_HINTS ===
+keywords: VIT-AP fees, tuition, caution deposit, total fee, category 1, scholarships, GV Merit, Rajeswari, B.Tech fee, M.Tech VLSI, Integrated M.Tech, BBA fee, BA LLB fee, B.Com fee, MSc Data Science concession, PhD tuition
+aliases:
+  - CD → caution_deposit
+  - T1Y → total_first_year
+  - C1 → Category 1
+
+=== END_OF_DOCUMENT ===

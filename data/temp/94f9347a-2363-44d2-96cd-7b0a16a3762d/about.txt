@@ -1,0 +1,59 @@
+============ VIT-AP Programmes Offered ============
+
+=== OVERVIEW ===
+This document lists academic programmes offered at VIT-AP University, organized by level: undergraduate, dual degree, integrated, postgraduate, and doctoral.
+
+=== UNDERGRADUATE_PROGRAMMES ===
+- B.Tech. Computer Science and Engineering
+- B.Tech. Computer Science and Engineering (Artificial Intelligence and Machine Learning)
+- B.Tech. Computer Science and Engineering (Blockchain)
+- B.Tech. Computer Science and Engineering (Cyber Security)
+- B.Tech. Computer Science and Engineering (Data Analytics)
+- B.Tech. Computer Science and Engineering (Software Engineering)
+- B.Tech. Electronics and Communication Engineering
+- B.Tech. Electronics and Communication Engineering (Embedded Systems)
+- B.Tech. Electronics and Communication Engineering (VLSI)
+- B.Tech. Mechanical Engineering
+- B.Tech. Mechanical Engineering (Automotive Design)
+- B.Tech. Mechanical Engineering (Robotics)
+- B.Tech. Computer Science and Business Systems
+- B.Com Finance
+- BBA
+
+=== DUAL_DEGREE_PROGRAMMES ===
+- B.Sc. - M.Sc. Data Science (in collaboration with Binghamton University, USA & QpiAI, India Pvt. Ltd.)
+- B.A. - M.A.
+
+=== INTEGRATED_PROGRAMMES ===
+- M.Tech. Computer Science and Engineering (in collaboration with Virtusa)
+- M.Tech. Software Engineering
+- B.A., LL.B (Hons.)
+- BBA., LL.B (Hons.)
+
+=== POSTGRADUATE_PROGRAMMES ===
+- M.Tech. VLSI
+- M.Sc. Data Science (in collaboration with Binghamton University, USA & QpiAI, India Pvt. Ltd.)
+- M.Sc. Chemistry (in collaboration with Mitsui Kinzoku Components India (MKCI))
+
+=== DOCTORAL_PROGRAMMES ===
+- Computer Science and Engineering
+- Electronics Engineering
+- Mechanical Engineering
+- Advanced Sciences
+- Social Sciences and Humanities
+- Law
+- Business
+
+=== NOTES ===
+- Some items were duplicated in the source; this version removes duplicates and normalizes punctuation and spacing.
+- Collaboration partners are preserved in parentheses for programmes that specify industry or university partners.
+
+=== SEARCH_HINTS ===
+keywords: VIT-AP programmes, undergraduate, postgraduate, dual degree, integrated, doctoral, B.Tech, M.Tech, M.Sc, LL.B, Data Science, Virtusa, Binghamton University, QpiAI, MKCI
+aliases:
+  - UG = undergraduate
+  - PG = postgraduate
+  - ECE = Electronics and Communication Engineering
+  - CSE = Computer Science and Engineering
+
+=== END_OF_DOCUMENT ===

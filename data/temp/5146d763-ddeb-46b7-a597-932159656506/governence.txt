@@ -1,0 +1,101 @@
+=== Governance Structure — VIT-AP University ===
+
+=== OVERVIEW ===
+VIT-AP University is guided by a multi-tiered governance model with leadership from the VIT group. Key decision bodies include the Governing Body, Board of Management, Academic Council, Finance Committee, Planning and Monitoring Board, and Research Advisory Committee. These bodies ensure high standards in administration, academics, financial management, planning, and research.
+
+=== LEADERSHIP (PILLARS) ===
+- Dr. G. Viswanathan — Founder & Chancellor, VIT (chancellor@vit.ac.in)
+- Mr. Sankar Viswanathan — Vice-President, VIT (sankar@vit.ac.in; Tel: +91 416 2202108 / 2240955 / 2249955)
+- Dr. Sekar Viswanathan — Vice-President, VIT (sekar.office@vit.ac.in; Tel: +91 416 2202255)
+- Dr. G. V. Selvam — Vice-President, VIT
+- Dr. Sandhya Pentareddy — Executive Director, VIT
+- Dr. S. V. Kota Reddy — Vice-Chancellor, VIT-AP (vc.secretary@vitap.ac.in)
+- Dr. Jagadish Chandra Mudiganti — Registrar, VIT-AP (registrar.office@vitap.ac.in)
+
+=== GOVERNING BODY ===
+Chairperson: Dr. G. Viswanathan (Chancellor, VIT)
+Members:
+  - Dr. S. V. Kota Reddy (Vice-Chancellor, VIT-AP)
+  - Dr. Yasodha Shanmugasundaram (Former Vice-Chancellor, MS University)
+  - Dr. Sandhya Pentareddy (Executive Director, VIT)
+  - Dr. N. Lalitha (Advisor and Educational Consultant)
+  - Dr. Jagadish Chandra Mudiganti (Registrar, VIT-AP) — Member Secretary
+
+=== BOARD OF MANAGEMENT ===
+Chairperson: Dr. S. V. Kota Reddy (Vice-Chancellor, VIT-AP)
+Members:
+  - Dr. Sekar Viswanathan (Vice President, VIT)
+  - Mr. Sankar Viswanathan (Vice President, VIT)
+  - Dr. G. V. Selvam (Vice President, VIT)
+  - Dr. M. V. Krishnamurthy (Former Prof Emeritus, IISc Bangalore)
+  - Dr. Deepasikha Mishra (Faculty, SCOPE, VIT-AP)
+  - Dr. D. Venkata Lakshmi (Faculty, SCOPE, VIT-AP)
+  - Dr. Pragya Sengupta (Faculty, VISH, VIT-AP)
+  - Dr. Jagadish Chandra Mudiganti (Registrar, VIT-AP) — Member Secretary
+
+=== ACADEMIC COUNCIL ===
+Chairperson: Dr. S. V. Kota Reddy (Vice Chancellor, VIT-AP)
+External members:
+  - Dr. M. V. Kartikeyan (Director, IIIT DM Kancheepuram)
+  - Dr. Venkatesh Balasubramanian (IIT Madras)
+  - Dr. C. Krishna Mohan (IIT Hyderabad)
+  - Dr. Subba Rao Pavuluri (CMD, Ananth Technologies)
+  - Mr. Karthikeyan Natarajan (ED & CEO, Cyient)
+  - Mr. Kalyan Muppaneni (Founder & CEO, Pi DATACENTERS)
+Internal and academic members:
+  - Dr. Anthony Xavior (Dean Academics, VIT-Vellore)
+  - Dr. Madhusudhana Rao N (Dean Academics, VIT-AP)
+  - Dr. Ravindra Dhuli (Dean Research, VIT-AP)
+  - Dr. Venkatrajam Marka (Controller of Examinations, VIT-AP)
+  - Chairs/HoDs of Boards of Studies (SCOPE, SENSE, SMEC, VSB, VSL, SAS, VISH)
+  - Student Member: Ms. Naga Madhu Latha B M
+  - Dr. Jagadish Chandra Mudiganti (Registrar, VIT-AP) — Member Secretary
+
+=== FINANCE COMMITTEE ===
+Chairperson: Dr. S. V. Kota Reddy (Vice Chancellor, VIT-AP)
+Members:
+  - Dr. Sekar Viswanathan (Vice President, VIT)
+  - Mr. Sankar Viswanathan (Vice President, VIT)
+  - Dr. G. V. Selvam (Vice President, VIT)
+  - Dr. Jagadish Chandra Mudiganti (Registrar, VIT-AP)
+  - Sri. M. V. Bhaskara Rao (IPS, Retd; Former DGP)
+  - Sri. B. Nagarjuna (GM, Retd, Indian Bank)
+  - Mr. Sai Kiran Nerella (Chief Finance & Accounting Officer, VIT-AP) — Member Secretary
+
+=== PLANNING AND MONITORING BOARD ===
+Chairperson: Dr. S. V. Kota Reddy (Vice Chancellor, VIT-AP)
+Members:
+  - Dr. Sekar Viswanathan (Vice President, VIT)
+  - Dr. S. P. Thyagarajan (Dean Research, Sri Ramachandra Inst.)
+  - Dr. H. Chaturvedi (Director, Birla Institute of Management and Technology)
+  - Dr. N. Madhusudhana Rao (Dean Academics, VIT-AP)
+  - Dr. Dilip Kumar Mohanty (Dean, SMEC, VIT-AP)
+  - Dr. Jagadish Chandra Mudiganti (Registrar, VIT-AP) — Member Secretary
+
+=== RESEARCH ADVISORY COMMITTEE ===
+Chairperson: Dr. S. V. Kota Reddy (Vice Chancellor, VIT-AP)
+External members:
+  - Dr. Milind V Rane (Professor, IIT Mumbai)
+  - Dr. Shiv Joshi (Professor, IIT Delhi)
+  - Dr. Swarup Medasani (Director, Mathworks, Hyderabad)
+  - Dr. Sreenivasa Kumar P (Professor, IIT Madras)
+  - Dr. U. Chandrasekhar (Program Director, Addwize Wipro 3D, Bengaluru)
+Internal members:
+  - Dr. Sekar Viswanathan (Vice President, VIT)
+  - Mr. Sankar Viswanathan (Vice President, VIT)
+  - Dr. G. V. Selvam (Vice President, VIT)
+  - Dr. Ravindra Dhuli (Professor, VIT-AP)
+  - Dr. Madhusudhana Rao N (Professor, VIT-AP)
+  - Dr. M. Jagadish Chandra (Registrar, VIT-AP) — Member Secretary
+
+=== SEARCH_HINTS ===
+keywords: governance, governing body, board of management, academic council, finance committee, planning and monitoring, research advisory, VIT-AP leadership, registrar, vice chancellor, chancellor, administration
+aliases:
+  - GB → Governing Body
+  - BOM → Board of Management
+  - AC → Academic Council
+  - FC → Finance Committee
+  - PMB → Planning and Monitoring Board
+  - RAC → Research Advisory Committee
+
+=== END_OF_DOCUMENT ===

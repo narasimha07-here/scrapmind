@@ -1,0 +1,98 @@
+============ Application Process - VIT-AP University ============
+=== OVERVIEW ===
+This document provides structured, step-by-step application and admission details for B.Tech and Integrated M.Tech (5-year) programmes at VIT-AP University, including eligibility, age limits, subject requirements, application steps, and admission workflow.
+
+=== BTECH_ADMISSION ===
+
+[Eligibility.Criteria]
+- Nationality:
+  - Resident Indian / Non-Resident Indian (NRI) / OCI / PIO holder
+  - NRI applicants: apply under “NRI Category” (NRI application; availability announced on official site)
+    - info_link: https://vit.ac.in/admissions/international/overview
+  - Foreign applicants studied/studying abroad: apply via International application
+    - apply_link: https://admissions.vit.ac.in/ugirapplication/
+- Age Limit:
+  - Eligible if born on or after 2003-07-01
+  - Original date-of-birth proof required at counselling; non-compliance leads to disqualification
+- Qualifying Examination (10+2 / Intermediate):
+  - Minimum 60% aggregate in Physics, Chemistry, Mathematics/Biology (PCM/PCB)
+  - Minimum 50% aggregate for:
+    - SC/ST candidates
+    - Candidates from J&K, Ladakh, and North Eastern states (Arunachal Pradesh, Assam, Manipur, Meghalaya, Mizoram, Nagaland, Sikkim, Tripura)
+- Subject Eligibility:
+  - PCMB/PCM (MPCEA: Maths, Physics, Chemistry, English & Aptitude) → eligible for all B.Tech programmes
+  - PCMB/PCB (BPCEA: Biology, Physics, Chemistry, English & Aptitude) → eligible only for:
+    - B.Tech. Biotechnology (VIT Vellore)
+    - B.Tech. CSE (Bioinformatics), VIT Vellore
+    - B.Tech. ECE (Biomedical Engineering), VIT Vellore
+    - B.Tech. Health Sciences and Technology, VIT Vellore
+    - B.Tech. Bioengineering, VIT Bhopal
+    - B.Tech. CSE (Health Informatics), VIT Bhopal
+
+[Application]
+- apply_link: https://viteee.vit.ac.in/
+- exam: VITEEE (Computer Based Test)
+
+[Admission.Process]
+1. Selection based on VITEEE rank (CBT).
+2. Shortlisted candidates are invited for online counselling.
+3. Candidate chooses campus and programme.
+4. Fee payment confirms seat; classes commence (online or in-person).
+5. Original document verification at joining is mandatory.
+
+=== INTEGRATED_MTECH_5Y ===
+
+[Eligibility.Criteria]
+- Nationality & Schooling:
+  - Resident Indian Nationals, with full-time formal education in India in the last 2 years (10+2)
+  - NRI/Foreign applicants must apply via International route:
+    - info_link: https://vit.ac.in/admissions/international/integrated
+    - annual_fee_usd: 5600
+- Age Limit:
+  - Eligible if born on or after 2005-07-01
+
+[How_To_Apply]
+1. Apply online only on VIT website.
+2. Use valid email ID and active mobile number.
+3. OTP verification → password sent to registered email.
+4. Application number generated after primary details.
+5. Pay non-refundable fee: ₹600 (NetBanking / Card / Paytm).
+6. Upload documents:
+   - Birth Certificate
+   - 10th Marksheet
+   - 12th Marksheet / Statement
+   - 12th Exam Hall Ticket / Admit Card
+7. Download filled application for reference.
+8. Do not send hard copy to VIT.
+
+[Admission.Process]
+- Merit basis: aggregate of Physics, Chemistry, Mathematics in Class 12 (rounded to 2 decimals).
+- Tie-breaker order: Mathematics → Physics → Chemistry → Total marks.
+- Key dates (tentative):
+  - Shortlisted list: 2025-06-04
+  - Campus & programme preference selection: 2025-06-04 to 2025-06-06
+  - Seat allotment: 2025-06-10 (fixed; no changes)
+  - Provisional Admission Letter issued; fee payment deadline: 2025-06-20
+- Orientation & commencement: notified via email.
+
+=== NOTES ===
+- Dates and links are subject to official updates by VIT-AP/VIT; candidates should verify on the official website before applying.
+- Percentage thresholds and category relaxations apply only as stated.
+- “Allotment fixed; cannot change” implies no post-allotment programme/campus changes for this round.
+
+=== SEARCH_HINTS ===
+keywords: VIT-AP application, VITEEE, B.Tech eligibility, Integrated M.Tech 5-year, age limit, PCM PCB percentage, NRI application, international application, fee, counselling, seat allotment dates, documents upload
+fields:
+  - exam: VITEEE
+  - apply_link_btech: https://viteee.vit.ac.in/
+  - apply_link_international_ug: https://admissions.vit.ac.in/ugirapplication/
+  - info_link_international_integrated: https://vit.ac.in/admissions/international/integrated
+dates:
+  - btech_dob_cutoff: 2003-07-01
+  - integrated_dob_cutoff: 2005-07-01
+  - shortlist_date_tentative: 2025-06-04
+  - preference_window_tentative: 2025-06-04_to_2025-06-06
+  - seat_allotment_tentative: 2025-06-10
+  - fee_deadline_tentative: 2025-06-20
+
+=== END_OF_DOCUMENT ===

@@ -1,0 +1,54 @@
+============ Centre of Examinations (CoE) — VIT-AP University ============
+
+=== OVERVIEW ===
+The Centre of Examinations (CoE) plans, conducts, and manages all examination-related activities across VIT-AP academic programmes, ensuring transparency, accuracy, and timely evaluation.
+
+=== KEY_RESPONSIBILITIES ===
+
+[Conducting_Examinations]
+- Preparation, scheduling, and conduct of Final Assessment Tests (FATs) for all programmes
+- Central evaluation of answer scripts by internal and external examiners
+- Timely publication of results for all courses
+
+[Certification_and_Documentation]
+- Issuance of Grade Certificates, Consolidated Statements of Grades, and Provisional Certificates
+- Preparation of Degree Certificates
+- Creation and publication of Rank Lists and Gold Medalist Lists
+
+[Verification_and_Support_Services]
+- Issuing Transcripts for alumni
+- Providing genuineness and verification services to:
+  - Government authorities
+  - Corporate organizations
+  - Educational institutions
+- Issuing Duplicate Certificates and CGPA Equivalence Certificates
+
+[Quality_and_Transparency_in_Evaluation]
+- Pre- and post-auditing of question papers and answer scripts by subject experts
+- Paper Seeing and Revaluation processes for students
+
+=== ADDITIONAL_SERVICES ===
+- CGPA Equivalence Certificate: available online
+- Transcripts for Alumni: supported via dedicated email
+
+=== CONTACT_INFORMATION ===
+contact_person: Dr. Venkatrajam Marka
+designation: Controller of Examinations
+emails:
+  - general_queries: helpdesk.coe@vitap.ac.in
+  - transcripts_and_certificates: transcript.services@vitap.ac.in
+  - official: coe@vitap.ac.in
+
+=== ADDRESS ===
+VIT-AP University
+Beside AP Secretariat, Near Vijayawada – 522241
+Inavolu, Andhra Pradesh, India
+
+=== SEARCH_HINTS ===
+keywords: VIT-AP CoE, examinations, FAT, results, transcripts, certificates, revaluation, paper seeing, rank list, gold medalist, CGPA equivalence, verification
+services_map:
+  - transcripts → transcripts_and_certificates
+  - general → general_queries
+  - official → official
+
+=== END_OF_DOCUMENT ===

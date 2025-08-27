@@ -1,0 +1,220 @@
+{
+  "813d87b9-60de-4669-a9dd-2a0b80d1273e": {
+    "name": "VITAP",
+    "description": "UniChatBot is a university-focused chatbot that answers student and faculty queries using Retrieval-Augmented Generation (RAG). It integrates custom datasets (like academic schedules, course details, and policies) with AI-driven responses for accurate, context-aware assistance.\n\n",
+    "welcome_message": "Hello! I am your AI assistant. How can I help you today?",
+    "model": "mistralai/mistral-small-3.2-24b-instruct:free",
+    "temperature": 0.7,
+    "max_tokens": 1000,
+    "personality": "Professional",
+    "knowledge_base": {
+      "enabled": true,
+      "data_source": "Upload Documents",
+      "chunking_strategy": "recursive_character",
+      "chunk_size": 1000,
+      "chunk_overlap": 100,
+      "embedding_model": "BAAI/bge-small-en-v1.5",
+      "similarity_threshold": 0.7,
+      "max_results": 4,
+      "uploaded_files": [],
+      "file_names": [
+        "about.txt",
+        "Application_Process.txt",
+        "clubs.txt",
+        "coe.txt",
+        "courses_btech_cse.csv",
+        "CREDIT.txt",
+        "ecs.txt",
+        "faculty.csv",
+        "Faculty_cabins.csv",
+        "FEES_AND_SCHOLARSHIPS.txt",
+        "FFCS.txt",
+        "governence.txt",
+        "hostel_fee.txt",
+        "HOSTELS.txt",
+        "INFRASTRUCTURE.txt",
+        "INTERNATIONAL_RELATIONS.txt",
+        "LIBRARY.txt",
+        "PROGRAMS.txt",
+        "VALUE_ADDED_COURSES.txt"
+      ],
+      "file_metadata": [
+        {
+          "name": "about.txt",
+          "type": "text/plain",
+          "size": 2438,
+          "index": 0,
+          "upload_time": "2025-08-25T07:36:38.371236"
+        },
+        {
+          "name": "Application_Process.txt",
+          "type": "text/plain",
+          "size": 4757,
+          "index": 1,
+          "upload_time": "2025-08-25T07:36:38.375587"
+        },
+        {
+          "name": "clubs.txt",
+          "type": "text/plain",
+          "size": 2930,
+          "index": 2,
+          "upload_time": "2025-08-25T07:36:38.379304"
+        },
+        {
+          "name": "coe.txt",
+          "type": "text/plain",
+          "size": 2129,
+          "index": 3,
+          "upload_time": "2025-08-25T07:36:38.383147"
+        },
+        {
+          "name": "courses_btech_cse.csv",
+          "type": "text/csv",
+          "size": 123294,
+          "index": 4,
+          "upload_time": "2025-08-25T07:36:38.385764"
+        },
+        {
+          "name": "CREDIT.txt",
+          "type": "text/plain",
+          "size": 1871,
+          "index": 5,
+          "upload_time": "2025-08-25T07:36:38.387750"
+        },
+        {
+          "name": "ecs.txt",
+          "type": "text/plain",
+          "size": 2270,
+          "index": 6,
+          "upload_time": "2025-08-25T07:36:38.392202"
+        },
+        {
+          "name": "faculty.csv",
+          "type": "text/csv",
+          "size": 84987,
+          "index": 7,
+          "upload_time": "2025-08-25T07:36:38.395025"
+        },
+        {
+          "name": "Faculty_cabins.csv",
+          "type": "text/csv",
+          "size": 9474,
+          "index": 8,
+          "upload_time": "2025-08-25T07:36:38.396701"
+        },
+        {
+          "name": "FEES_AND_SCHOLARSHIPS.txt",
+          "type": "text/plain",
+          "size": 4650,
+          "index": 9,
+          "upload_time": "2025-08-25T07:36:38.399164"
+        },
+        {
+          "name": "FFCS.txt",
+          "type": "text/plain",
+          "size": 2456,
+          "index": 10,
+          "upload_time": "2025-08-25T07:36:38.401818"
+        },
+        {
+          "name": "governence.txt",
+          "type": "text/plain",
+          "size": 5026,
+          "index": 11,
+          "upload_time": "2025-08-25T07:36:38.403839"
+        },
+        {
+          "name": "hostel_fee.txt",
+          "type": "text/plain",
+          "size": 4153,
+          "index": 12,
+          "upload_time": "2025-08-25T07:36:38.406921"
+        },
+        {
+          "name": "HOSTELS.txt",
+          "type": "text/plain",
+          "size": 3317,
+          "index": 13,
+          "upload_time": "2025-08-25T07:36:38.409728"
+        },
+        {
+          "name": "INFRASTRUCTURE.txt",
+          "type": "text/plain",
+          "size": 2984,
+          "index": 14,
+          "upload_time": "2025-08-25T07:36:38.413774"
+        },
+        {
+          "name": "INTERNATIONAL_RELATIONS.txt",
+          "type": "text/plain",
+          "size": 4088,
+          "index": 15,
+          "upload_time": "2025-08-25T07:36:38.415895"
+        },
+        {
+          "name": "LIBRARY.txt",
+          "type": "text/plain",
+          "size": 3792,
+          "index": 16,
+          "upload_time": "2025-08-25T07:36:38.417605"
+        },
+        {
+          "name": "PROGRAMS.txt",
+          "type": "text/plain",
+          "size": 100757,
+          "index": 17,
+          "upload_time": "2025-08-25T07:36:38.420390"
+        },
+        {
+          "name": "VALUE_ADDED_COURSES.txt",
+          "type": "text/plain",
+          "size": 1807,
+          "index": 18,
+          "upload_time": "2025-08-25T07:36:38.424196"
+        }
+      ],
+      "_initialization_failed": true
+    },
+    "advanced_settings": {
+      "context_window": 10,
+      "response_format": "structured",
+      "error_handling": "detailed",
+      "system_message": "",
+      "custom_instructions": ""
+    },
+    "created_at": "2025-08-25T07:21:56.688243",
+    "updated_at": "2025-08-25T07:36:24.134015",
+    "status": "active",
+    "user_id": "user_3d2d73252a54",
+    "bot_id": "813d87b9-60de-4669-a9dd-2a0b80d1273e",
+    "user_config": {
+      "user_id": "user_3d2d73252a54",
+      "username": "User",
+      "openrouter_api_key": "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",
+      "openai_api_key": "",
+      "default_model": "meta-llama/llama-3.2-3b-instruct:free",
+      "default_embedding": "sentence-transformers/all-MiniLM-L6-v2",
+      "default_chunking": "recursive_character",
+      "default_chunk_size": 1000,
+      "default_chunk_overlap": 200,
+      "default_personality": "Professional",
+      "default_temperature": 0.7,
+      "default_max_tokens": 1000,
+      "default_context_window": 5,
+      "created_at": "2025-08-25T07:14:55.067496",
+      "last_updated": "2025-08-25T07:36:24.080544",
+      "version": "1.2",
+      "default_welcome": "Hello! I am your AI assistant. How can I help you today?"
+    },
+    "_kb_status": {
+      "initialized": true,
+      "embedding_model": "BAAI/bge-small-en-v1.5",
+      "document_count": 19,
+      "chunks_processed": 0,
+      "manual_text_processed": false,
+      "vectorstore_type": "Chroma",
+      "embedding_type": "HuggingFace"
+    },
+    "last_saved": "2025-08-25T07:36:38.427777"
+  }
+}

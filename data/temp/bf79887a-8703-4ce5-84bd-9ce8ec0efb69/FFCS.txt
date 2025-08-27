@@ -1,0 +1,43 @@
+=== Fully Flexible Credit System (FFCS) at VIT-AP University ===
+
+=== OVERVIEW ===
+The Fully Flexible Credit System (FFCS) at VIT-AP University provides students with maximum academic flexibility and a student-centric learning environment. Students can design their own timetable, select courses and faculty, and balance academics with extracurricular pursuits for holistic personal growth.
+
+=== SALIENT_FEATURES ===
+- Complete freedom to choose the order of courses each semester
+- Select preferred time slots and faculty members for courses
+- Decide the number of courses per semester, based on individual pace and interest
+- Prepare custom academic timetable and plan
+- Curriculum integrates engineering, sciences, humanities, and management
+- Opportunity to explore interdisciplinary courses beyond core branch
+- Undergraduate research experience option available
+- Pathways to Double Major, Minor, and Honours degrees
+- Branch change option for B.Tech students after the first year
+- Pursuit of other interests such as sports, clubs, and cultural activities alongside academics
+- Promotes multi-disciplinary learning and overall personal growth
+
+=== BENEFITS_TO_STUDENTS ===
+- Personalized and student-driven learning experience
+- Flexible progression: accelerate or diversify academic progress
+- Exposure to multi-disciplinary knowledge and research opportunities
+- Balance academics with co-curricular and extra-curricular activities
+- Support for holistic development across academics and personal interests
+
+=== PARTICIPATION_MODEL ===
+- Student-centric: each student customizes their academic plan
+- Academic progression through individually chosen courses, time slots, and faculty
+- Eligible for add-on pathways (Double Major, Minor, Honours) as per institutional policies
+- B.Tech students may apply for a branch change after the first year according to guidelines
+
+=== CONTACT ===
+name: Academic Office, VIT-AP University
+address: Beside AP Secretariat, Near Vijayawada – 522237, Andhra Pradesh, India
+email: info@vitap.ac.in
+
+=== SEARCH_HINTS ===
+keywords: Fully Flexible Credit System, FFCS, VIT-AP, flexible curriculum, course choice, student-centric timetable, interdisciplinary, double major, minor, branch change, personalized learning, holistic development
+aliases:
+  - FFCS → Fully Flexible Credit System
+  - Personalized timetable → Student-designed timetable
+
+=== END_OF_DOCUMENT ===

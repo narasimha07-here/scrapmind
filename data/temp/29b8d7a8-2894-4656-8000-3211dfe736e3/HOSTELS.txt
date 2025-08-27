@@ -1,0 +1,94 @@
+========= VIT-AP HOSTELS ============
+
+=== OVERVIEW ===
+VIT-AP hostels provide a secure and comfortable living environment, truly a “home away from home.” Only VIT-AP students and authorized personnel are permitted inside hostel premises.
+
+=== ROOM_FURNISHINGS ===
+- Cot
+- Chair
+- Study table
+- Cupboard
+
+=== ADDITIONAL_FEATURES ===
+- Resident wardens available 24×7
+- Provision stores for essentials (mattresses, pillows, buckets, mugs, locks, books, soaps, stationery)
+- AC and Non-AC rooms allotted on a first-come, first-served basis after full hostel fee payment
+
+=== LOCATION ===
+- Strategically located in the heart of the campus
+- Easy access to classrooms, library, labs, dining halls, and sports facilities
+
+=== AMENITIES ===
+section_note: Premium facilities to make hostel life enjoyable
+
+[Amenity: Night Canteen]
+- Open late into the night
+- Serves a variety of delicious food
+
+[Amenity: 24/7 Library]
+- Round-the-clock access for students
+- Quiet and focused study environment
+
+[Amenity: Indoor Games]
+- Includes Table Tennis, Foosball, and other recreational options
+- Encourages stress relief and relaxation
+
+[Additional Facilities]
+- Wi‑Fi access across hostels
+- Laundry service (44 washes/10 months included in hostel fee)
+- Sports facilities for fitness and leisure
+
+=== HOSTEL_FEE_AND_POLICIES ===
+- Hostel Admission Fee: ₹15,000 (Non-refundable)
+- Caution Deposit: ₹15,000 (Refundable after course completion)
+- Fee includes: Room + Mess + Laundry
+- Upgrade Policy:
+  - Pay full differential fee for Fall Semester upgrades
+  - Pay 50% differential fee for Winter Semester upgrades
+- No refund for downgrades in mess or room type
+- Refunds follow official hostel refund policy
+- Annual escalation in hostel fee applies
+
+=== MENS_HOSTEL_TEAM ===
+- Chief Warden: Dr. G D V Santosh Kumar
+- Wardens:
+  - Dr. Abdul Raffie Naik – MH-1 (Sarojini Naidu Block)
+  - Dr. Ramasamy Kavikumar – MH-2 (Rabindranath Tagore Block)
+  - Dr. Prakash S – MH-3 (Neelam Sanjiva Reddy Block)
+  - Dr. Mo Faheem – MH-4
+  - Dr. Satri Veera Kesalu – MH-5
+  - Dr. Sumesh E P & Mr. Ramesh Sahoo – MH-6 & MH-7
+  - Dr. Sunil Khosla – Discipline
+  - Dr. Shobhit Kumar Srivastava – Attendance
+  - Dr. Siva G – Food
+  - Dr. Muneeswaran M – Events
+- Supervisors: Mr. Selvaraj; Mr. Ragupathi Ramasamy; Mr. K Sreenivasulu
+- Contact: 08632-370501
+
+=== LADIES_HOSTEL_TEAM ===
+- Chief Warden: Dr. Malavika Ganta
+- Wardens:
+  - Dr. Renita R – LH-1 & LH-2
+  - Ms. Srirupa Poddar – LH-3 & LH-4/4A
+  - Dr. A Senthamizhselvi – Discipline
+  - Dr. Kirtika Sahu – Attendance
+  - Dr. Shalini Subramani – Food
+  - Dr. Karishma Bisht – Events
+- Hostel Manager: Ms. Srilakshmi
+- Contact: 08632-370600
+
+=== HOSTEL_BLOCKS ===
+- Men’s Hostels: MH-1; MH-2; MH-3; MH-4; MH-5; MH-6; MH-7
+- Ladies’ Hostels: LH-1; LH-2; LH-3; LH-4/4A
+
+=== IMPORTANT_DOCUMENTS ===
+- Hostel Affidavit
+- Code of Conduct
+- Rules & Refund Policy
+- Freshers Information
+
+=== SEARCH_HINTS ===
+keywords: VIT-AP hostel, hostel fee, wardens, contact numbers, men’s hostel, ladies hostel, amenities, location, laundry, Wi‑Fi, rules, refund policy, blocks
+primary_contacts: 08632-370501 (Men); 08632-370600 (Ladies)
+
+=== END_OF_DOCUMENT ===

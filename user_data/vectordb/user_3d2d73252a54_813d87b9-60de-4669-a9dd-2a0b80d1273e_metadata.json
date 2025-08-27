@@ -1,0 +1,9 @@
+{
+  "collection_name": "bot_813d87b9_60de_4669_a9dd_2a0b80d1273e_docs",
+  "persist_directory": "user_data\\vectordb\\user_3d2d73252a54\\813d87b9-60de-4669-a9dd-2a0b80d1273e",
+  "total_documents": 755,
+  "embedding_model": "BAAI/bge-small-en-v1.5",
+  "user_id": "user_3d2d73252a54",
+  "bot_id": "813d87b9-60de-4669-a9dd-2a0b80d1273e",
+  "saved_at": "2025-08-25T08:10:42.911112"
+}
