@@ -237,19 +237,15 @@ class LinkGenerator:
         base_url = os.getenv('APP_BASE_URL')
         if base_url:
             return base_url.rstrip('/')
-
-        custom_domain = "https://your-custom-domain.com" 
-        if custom_domain != "https://your-custom-domain.com":
-            return custom_domain.rstrip('/')
-
+        
         try:
             import streamlit.web.server.server as server
             if hasattr(server, 'Server') and server.Server._instance:
                 return "http://localhost:8501"
             else:
-                return "https://your-app.streamlit.app" 
+                return "https://ScrapMind.streamlit.app" 
         except Exception:
-            return "https://your-app.streamlit.app"
+            return "https://ScrapMind.streamlit.app"
 
     def generate_public_link(self, bot_id: str, bot_config: Dict) -> Dict:
         try:
