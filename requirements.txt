@@ -50,3 +50,4 @@ qrcode[pil]>=7.4.2
 pydub>=0.25.1
 soundfile>=0.12.1
 gtts>=2.3.0
+sqlite3
