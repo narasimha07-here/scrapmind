@@ -1,7 +1,7 @@
 {
   "user_id": "user_3d2d73252a54",
   "username": "reddy",
-  "openrouter_api_key": "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",
+  "openrouter_api_key": " ",
   "openai_api_key": "",
   "default_model": "meta-llama/llama-3.2-3b-instruct:free",
   "default_embedding": "sentence-transformers/all-MiniLM-L6-v2",
