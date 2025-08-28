@@ -1066,7 +1066,7 @@ def show_bot_analytics_modal(bot_id: str, bot_config: dict):
 
 def show_share_options_modal(bot_id: str, bot_config: dict):
     with st.expander(f"Share: {bot_config.get('name', 'Bot')}", expanded=True):
-        base_url = "https://your-chatbot-app.streamlit.app"
+        base_url = "https://scrapmind.streamlit.app"
         share_link = f"{base_url}/Chat?bot_id={bot_id}"
 
         st.markdown("#### Direct Link")

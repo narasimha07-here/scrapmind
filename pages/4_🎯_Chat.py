@@ -658,7 +658,7 @@ def show_share_link():
     if not st.session_state.current_bot:
         return
 
-    base_url = "https://your-chatbot-app.streamlit.app"
+    base_url = "https://scrapmind.streamlit.app"
     share_link = f"{base_url}/pages/4_🎯_Chat.py?bot_id={st.session_state.current_bot}"
 
     with st.expander("🔗 Share This Chat", expanded=True):
