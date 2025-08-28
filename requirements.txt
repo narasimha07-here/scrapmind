@@ -10,6 +10,7 @@ torch
 langchain-experimental
 langchain-core
 chromadb
+pysqlite3-binary
 sentence-transformers
 pypdf
 python-docx
@@ -20,7 +21,7 @@ requests
 aiohttp
 tiktoken
 beautifulsoup4
-regex>
+regex
 huggingface-hub
 tokenizers
 safetensors
