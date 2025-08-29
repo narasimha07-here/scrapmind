@@ -898,6 +898,105 @@ class VoiceConfig:
             st.error(f"Async Murf generation error: {str(e)}")
             return None
 
+    # FIXED: Move this method to the correct position in the class
+    async def _generate_murf_tts_audio(self, voice_config: Dict, text: str) -> Optional[bytes]:
+        """Generate TTS audio using Murf AI WebSocket API."""
+        if not WEBSOCKETS_AVAILABLE or not PYAUDIO_AVAILABLE:
+            st.error("Murf AI requires websockets and pyaudio libraries.")
+            return None
+        
+        murf_api_key = voice_config.get('api_key')
+        murf_voice_id = voice_config.get('voice')
+        
+        if not murf_api_key:
+            st.error("Murf AI API key is missing.")
+            return None
+        if not murf_voice_id:
+            st.error("Murf AI voice ID is not selected.")
+            return None
+        
+        ws_url = (
+            f"{MURF_WS_URL}?api-key={murf_api_key}"
+            f"&sample_rate={MURF_SAMPLE_RATE}"
+            f"&channel_type=MONO&format=WAV"
+        )
+        
+        full_audio_data = io.BytesIO()
+        
+        try:
+            import websockets
+            
+            st.info(f"Attempting to connect to Murf WS: {ws_url.split('?')[0]}...")
+            async with websockets.connect(ws_url, timeout=15) as ws:
+                st.info("Connected to Murf WS. Sending voice config...")
+                voice_config_msg = {
+                    "voice_config": {
+                        "voiceId": murf_voice_id,
+                        "style": "Conversational",
+                        "rate": int((voice_config.get('speed', 1.0) - 1.0) * 100),
+                        "pitch": voice_config.get('pitch', 0),
+                        "variation": 1
+                    }
+                }
+                await ws.send(json.dumps(voice_config_msg))
+                st.info("Voice config sent. Sending text...")
+
+                text_msg = {
+                    "text": text,
+                    "end": True
+                }
+                await ws.send(json.dumps(text_msg))
+                st.info("Text sent. Waiting for audio data...")
+
+                while True:
+                    try:
+                        response = await asyncio.wait_for(ws.recv(), timeout=10.0)
+                        data = json.loads(response)
+                        st.info(f"Received data from Murf: {data.keys()}")
+                        
+                        if "audio" in data and data["audio"]:
+                            audio_bytes = base64.b64decode(data["audio"])
+                            full_audio_data.write(audio_bytes)
+                            st.info(f"Received {len(audio_bytes)} audio bytes. Total: {full_audio_data.tell()} bytes.")
+                        
+                        if data.get("final", False):
+                            st.info("Final audio chunk received.")
+                            break
+                            
+                        if "error" in data:
+                            st.error(f"Murf API returned an error: {data['error']}")
+                            return None
+                            
+                    except asyncio.TimeoutError:
+                        st.warning("Timeout waiting for audio data from Murf. No more data expected or connection dropped.")
+                        break
+                    except json.JSONDecodeError as e:
+                        st.error(f"Invalid JSON response from Murf: {e}. Response: {response[:200]}...")
+                        break
+                    except Exception as e:
+                        st.error(f"Unexpected error during Murf audio reception: {str(e)}")
+                        break
+            
+            audio_content = full_audio_data.getvalue()
+            if len(audio_content) == 0:
+                st.error("No audio data was received from Murf AI.")
+                return None
+            st.success(f"Successfully received {len(audio_content)} bytes of Murf AI audio.")
+            return audio_content
+
+        except websockets.exceptions.InvalidStatusCode as e:
+            if e.status_code == 401:
+                st.error("Invalid Murf AI API key. Please check your credentials.")
+            else:
+                st.error(f"Murf API connection failed with status code: {e.status_code}. Error: {e}")
+            return None
+        except websockets.exceptions.ConnectionClosedError as e:
+            st.error(f"Murf connection closed unexpectedly: {e}. Code: {e.code}, Reason: {e.reason}")
+            return None
+        except Exception as e:
+            st.error(f"Unexpected error during Murf AI TTS generation: {str(e)}")
+            return None
+
     def show_usage_and_costs(self, voice_config: Dict):
         st.markdown("#### Usage & Cost Estimation")
         
@@ -933,90 +1032,6 @@ class VoiceConfig:
                     st.markdown("• Features:")
                     for feature in features:
                         st.markdown(f"  - {feature}")
-
-    async def _generate_murf_tts_audio(self, voice_config: Dict, text: str) -> Optional[bytes]:
-        """Generate TTS audio using Murf AI WebSocket API."""
-        if not WEBSOCKETS_AVAILABLE or not PYAUDIO_AVAILABLE:
-            return None
-        
-        murf_api_key = voice_config.get('api_key')
-        murf_voice_id = voice_config.get('voice')
-        
-        if not murf_api_key or not murf_voice_id:
-            return None
-        
-        # Construct WebSocket URL with parameters
-        ws_url = (
-            f"{MURF_WS_URL}?api-key={murf_api_key}"
-            f"&sample_rate={MURF_SAMPLE_RATE}"
-            f"&channel_type=MONO&format=WAV"
-        )
-        
-        full_audio_data = io.BytesIO()
-        
-        try:
-            # Import websockets here to avoid issues if not available
-            import websockets
-            
-            async with websockets.connect(ws_url, timeout=15) as ws:
-                # Send voice configuration
-                voice_config_msg = {
-                    "voice_config": {
-                        "voiceId": murf_voice_id,
-                        "style": "Conversational",
-                        "rate": int((voice_config.get('speed', 1.0) - 1.0) * 100),  # Convert to Murf range
-                        "pitch": voice_config.get('pitch', 0),
-                        "variation": 1
-                    }
-                }
-                await ws.send(json.dumps(voice_config_msg))
-
-                # Send text for synthesis
-                text_msg = {
-                    "text": text,
-                    "end": True
-                }
-                await ws.send(json.dumps(text_msg))
-
-                # Receive audio data
-                while True:
-                    try:
-                        response = await asyncio.wait_for(ws.recv(), timeout=5.0)
-                        data = json.loads(response)
-                        
-                        if "audio" in data and data["audio"]:
-                            audio_bytes = base64.b64decode(data["audio"])
-                            full_audio_data.write(audio_bytes)
-                        
-                        if data.get("final", False):
-                            break
-                            
-                        if "error" in data:
-                            st.error(f"Murf API error: {data['error']}")
-                            return None
-                            
-                    except asyncio.TimeoutError:
-                        st.warning("Timeout waiting for audio data from Murf")
-                        break
-                    except json.JSONDecodeError as e:
-                        st.error(f"Invalid JSON response from Murf: {e}")
-                        break
-            
-            audio_content = full_audio_data.getvalue()
-            return audio_content if len(audio_content) > 0 else None
-
-        except websockets.exceptions.InvalidStatusCode as e:
-            if e.status_code == 401:
-                st.error("Invalid Murf AI API key. Please check your credentials.")
-            else:
-                st.error(f"Murf API connection failed: HTTP {e.status_code}")
-            return None
-        except websockets.exceptions.ConnectionClosedError as e:
-            st.error(f"Murf connection closed unexpectedly: {e}")
-            return None
-        except Exception as e:
-            st.error(f"Unexpected error with Murf AI: {str(e)}")
-            return None
 
     def _generate_google_tts_audio(self, voice_config: Dict, text: str) -> Optional[bytes]:
         """Generate TTS audio using Google Text-to-Speech."""
@@ -1172,6 +1187,7 @@ class VoiceConfig:
             'test_text': "Hello! I'm your AI assistant. How can I help you today?"
         }
 
+    # FIXED: Ensure this method always returns a tuple, never None
     def generate_tts_audio(self, text: str, voice_config: Optional[Dict] = None) -> Tuple[Optional[bytes], Optional[str]]:
         """Main method to generate TTS audio based on configuration."""
         if not voice_config:
@@ -1197,11 +1213,14 @@ class VoiceConfig:
                     except TimeoutError:
                         st.error("TTS generation timed out")
                         return None, None
+                    except Exception as e:
+                        st.error(f"Error in Murf TTS generation: {str(e)}")
+                        return None, None
             
             elif provider == 'openai':
-                # Placeholder for OpenAI TTS implementation
-                st.info("OpenAI TTS implementation coming soon")
-                return None, None
+                # FIXED: Add OpenAI TTS implementation
+                audio_data = self._generate_openai_tts_audio(voice_config, text)
+                return audio_data, "audio/mp3"
                 
             else:
                 st.warning(f"TTS provider '{provider}' not available or not implemented")
@@ -1210,6 +1229,48 @@ class VoiceConfig:
         except Exception as e:
             st.error(f"Error generating TTS audio: {str(e)}")
             return None, None
+
+    # ADDED: OpenAI TTS implementation
+    def _generate_openai_tts_audio(self, voice_config: Dict, text: str) -> Optional[bytes]:
+        """Generate TTS audio using OpenAI API."""
+        if not REQUESTS_AVAILABLE:
+            st.error("requests library not available for OpenAI TTS")
+            return None
+        
+        api_key = voice_config.get('api_key')
+        if not api_key:
+            st.error("OpenAI API key is missing.")
+            return None
+        
+        voice = voice_config.get('voice', 'alloy')
+        speed = voice_config.get('speed', 1.0)
+        
+        try:
+            url = "https://api.openai.com/v1/audio/speech"
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "model": "tts-1",
+                "input": text,
+                "voice": voice,
+                "speed": speed,
+                "response_format": "mp3"
+            }
+            
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            response.raise_for_status()
+            
+            return response.content
+            
+        except requests.exceptions.RequestException as e:
+            st.error(f"OpenAI TTS API error: {str(e)}")
+            return None
+        except Exception as e:
+            st.error(f"OpenAI TTS error: {str(e)}")
+            return None
 
 def get_voice_config():
     """Get or create VoiceConfig instance."""
@@ -1319,3 +1380,26 @@ def validate_voice_config(voice_config: Dict) -> Tuple[bool, List[str]]:
         errors.append("Volume must be between 0.1 and 1.0")
     
     return len(errors) == 0, errors
+
+# ADDED: Helper function to safely handle TTS generation with proper error handling
+def safe_generate_tts(voice_manager, text: str, voice_config: Optional[Dict] = None) -> Tuple[Optional[bytes], Optional[str]]:
+    """Safely generate TTS audio with proper error handling and return tuple guarantees."""
+    try:
+        if not voice_manager:
+            return None, None
+            
+        result = voice_manager.generate_tts_audio(text, voice_config)
+        
+        # Ensure we always return a tuple
+        if result is None:
+            return None, None
+        elif isinstance(result, tuple) and len(result) == 2:
+            return result
+        else:
+            # Handle unexpected return format
+            st.error("Unexpected return format from TTS generation")
+            return None, None
+            
+    except Exception as e:
+        st.error(f"Error in safe TTS generation: {str(e)}")
+        return None, None
