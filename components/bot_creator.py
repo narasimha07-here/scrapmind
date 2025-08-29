@@ -2387,7 +2387,7 @@ print(response.json())
     ALLOWED_HEADERS=*
 
     LOG_LEVEL=INFO
-    LOG_FORMAT=json '''
+    LOG_FORMAT=json "'''
                 
                 return {
                     'main.py': main_py,
