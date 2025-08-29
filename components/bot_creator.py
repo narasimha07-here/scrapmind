@@ -2349,6 +2349,8 @@ print(response.json())
     CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
     '''
 
+                escaped_system_message = system_message.replace('"', '\\"') if system_message else ''
+                escaped_custom_instructions = custom_instructions.replace('"', '\\"') if custom_instructions else ''
                 env_example = f'''ENVIRONMENT=production
     PORT=8000
     APP_NAME="{bot_name}"
@@ -2387,7 +2389,8 @@ print(response.json())
     ALLOWED_HEADERS=*
 
     LOG_LEVEL=INFO
-    LOG_FORMAT=json "'''
+    LOG_FORMAT=json 
+    '''
                 
                 return {
                     'main.py': main_py,
