@@ -49,3 +49,5 @@ qrcode[pil]
 pydub
 soundfile
 gtts
+websockets 
+pyaudio

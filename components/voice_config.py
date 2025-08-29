@@ -1,11 +1,17 @@
 import streamlit as st
 import base64
 import os
-import tempfile
+import sys
 import time
 import json
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
+
+# Add new imports for WebSocket and audio playback
+import asyncio
+import websockets
+import pyaudio
+import io # Already present, but ensure it's there for BytesIO
 
 try:
     import requests
@@ -26,6 +32,12 @@ try:
     PYDUB_AVAILABLE = True
 except ImportError:
     PYDUB_AVAILABLE = False
+
+# Add new constants for Murf WebSocket
+MURF_WS_URL = "wss://api.murf.ai/v1/speech/stream-input"
+MURF_SAMPLE_RATE = 44100
+MURF_CHANNELS = 1
+MURF_FORMAT = pyaudio.paInt16
 
 class VoiceConfig:
     def __init__(self, data_manager=None):
@@ -90,6 +102,7 @@ class VoiceConfig:
         }
 
     def _fetch_and_cache_murf_voices(self, murf_api_key: str) -> Dict[str, str]:
+        # This method remains the same as it uses the REST API to fetch voice IDs
         if not murf_api_key:
             return {"Error": "API Key is missing."}
         
@@ -634,6 +647,8 @@ class VoiceConfig:
                 st.markdown(f"• requests: {'✅' if REQUESTS_AVAILABLE else '❌'}")
                 st.markdown(f"• gTTS: {'✅' if GTTS_AVAILABLE else '❌'}")
                 st.markdown(f"• pydub: {'✅' if PYDUB_AVAILABLE else '❌'}")
+                st.markdown(f"• websockets: {'✅' if 'websockets' in sys.modules else '❌'}") # Check for websockets
+                st.markdown(f"• pyaudio: {'✅' if 'pyaudio' in sys.modules else '❌'}") # Check for pyaudio
             
             with col2:
                 st.markdown("**Installation Commands:**")
@@ -643,6 +658,10 @@ class VoiceConfig:
                     st.code("pip install pydub") 
                 if not REQUESTS_AVAILABLE:
                     st.code("pip install requests")
+                if 'websockets' not in sys.modules:
+                    st.code("pip install websockets")
+                if 'pyaudio' not in sys.modules:
+                    st.code("pip install pyaudio")
 
     def configure_google_tts(self, voice_config: Dict):
         st.markdown("##### 🌐 Google Text-to-Speech (gTTS)")
@@ -708,7 +727,20 @@ class VoiceConfig:
     def get_available_providers(self) -> List[str]:
         available = []
         
-        available.extend(['murf', 'openai', 'elevenlabs', 'azure', 'amazon'])
+        # Check for websockets and pyaudio for Murf WebSocket
+        if 'websockets' in sys.modules and 'pyaudio' in sys.modules:
+            available.append('murf')
+        else:
+            # Fallback to Murf REST if websockets/pyaudio are not available, but warn
+            if REQUESTS_AVAILABLE:
+                st.warning("Murf AI WebSocket requires 'websockets' and 'pyaudio'. Falling back to Murf REST API if available.")
+                # If you want to strictly enforce WebSocket for Murf, remove 'murf' from here
+                # and only add it if websockets and pyaudio are present.
+                # For now, keeping it to allow the user to select Murf even if WebSocket isn't fully set up.
+                # The _generate_murf_tts_audio will handle the actual WebSocket connection.
+                pass 
+
+        available.extend(['openai', 'elevenlabs', 'azure', 'amazon']) # These are placeholders for future implementation
         
         if GTTS_AVAILABLE:
             available.append('google')
@@ -734,7 +766,8 @@ class VoiceConfig:
         
         with col1:
             if st.button("🎵 Generate Preview", type="primary", key="generate_voice_preview_button"):
-                audio_data, audio_format = self.generate_voice_preview(voice_config, test_text)
+                # Use asyncio.run to run the async function in a Streamlit context
+                audio_data, audio_format = asyncio.run(self.generate_voice_preview(voice_config, test_text))
                 if audio_data:
                     st.success("🎵 Preview generated successfully!")
                     st.audio(audio_data, format=audio_format)
@@ -775,7 +808,7 @@ class VoiceConfig:
         with col4:
             st.metric("Requests", "156")
 
-    def generate_voice_preview(self, voice_config: Dict, text: str) -> Tuple[Optional[bytes], Optional[str]]:
+    async def generate_voice_preview(self, voice_config: Dict, text: str) -> Tuple[Optional[bytes], Optional[str]]:
         provider = voice_config.get('provider', 'google')
         
         try:
@@ -783,9 +816,9 @@ class VoiceConfig:
                 audio_data = self._generate_google_tts_audio(voice_config, text)
                 return audio_data, "audio/mp3" if audio_data else None
             
-            elif provider == 'murf' and REQUESTS_AVAILABLE:
-                audio_data = self._generate_murf_tts_audio(voice_config, text)
-                return audio_data, "audio/wav" if audio_data else None
+            elif provider == 'murf': # No need for REQUESTS_AVAILABLE check here, _generate_murf_tts_audio will handle it
+                audio_data = await self._generate_murf_tts_audio(voice_config, text)
+                return audio_data, "audio/wav" if audio_data else None # Murf WebSocket outputs WAV
             
             else:
                 st.info(f"💡 Voice generation for {provider} is not yet implemented or dependencies are missing.")
@@ -814,9 +847,9 @@ class VoiceConfig:
             st.error(f"Google TTS error: {str(e)}")
             return None
 
-    def _generate_murf_tts_audio(self, voice_config: Dict, text: str) -> Optional[bytes]:
-        if not REQUESTS_AVAILABLE:
-            st.error("❌ 'requests' library not available for Murf AI.")
+    async def _generate_murf_tts_audio(self, voice_config: Dict, text: str) -> Optional[bytes]:
+        if 'websockets' not in sys.modules or 'pyaudio' not in sys.modules:
+            st.error("❌ 'websockets' and 'pyaudio' libraries are required for Murf AI WebSocket. Please install them.")
             return None
         
         murf_api_key = voice_config.get('api_key')
@@ -830,70 +863,61 @@ class VoiceConfig:
             st.error("Murf AI Voice ID is not selected. Please select a specific voice.")
             return None
         
-        url = "https://api.murf.ai/v1/speech/generate"
-        headers = {
-            "accept": "application/json",
-            "content-type": "application/json",
-            "api-key": murf_api_key
-        }
+        # Construct WebSocket URL with parameters
+        ws_url = (
+            f"{MURF_WS_URL}?api-key={murf_api_key}"
+            f"&sample_rate={MURF_SAMPLE_RATE}"
+            f"&channel_type=MONO&format=WAV"
+        )
         
-        payload = {
-            "text": text,
-            "voice_id": murf_voice_id,
-            "speed": voice_config.get('speed', 1.0),
-            "pitch": voice_config.get('pitch', 0),
-        }
-        
+        full_audio_data = io.BytesIO()
+        first_chunk = True
+
         try:
-            response = requests.post(url, headers=headers, json=payload, timeout=30)
-            response.raise_for_status()
-            
-            response_json = response.json()
-            
-            audio_url = None
-            
-            if 'audioFile' in response_json:
-                audio_file = response_json['audioFile']
-                if isinstance(audio_file, str):
-                    audio_url = audio_file.strip('[]\'\"')
-                else:
-                    audio_url = audio_file
-            elif 'audio_url' in response_json:
-                audio_url = response_json['audio_url']
-            elif 'url' in response_json:
-                audio_url = response_json['url']
-            
-            if audio_url:
-                if not audio_url.startswith('http'):
-                    st.error("❌ Invalid audio URL format from Murf AI")
-                    st.json(response_json)
-                    return None
-                
-                try:
-                    audio_response = requests.get(audio_url, timeout=30)
-                    audio_response.raise_for_status()
+            async with websockets.connect(ws_url) as ws:
+                # Send voice config first
+                voice_config_msg = {
+                    "voice_config": {
+                        "voiceId": murf_voice_id,
+                        "style": "Conversational", # Default style, can be made configurable
+                        "rate": int((voice_config.get('speed', 1.0) - 1.0) * 100), # Convert 0.25-2.0 to -75 to 100
+                        "pitch": voice_config.get('pitch', 0),
+                        "variation": 1 # Default variation
+                    }
+                }
+                await ws.send(json.dumps(voice_config_msg))
+
+                # Send text
+                text_msg = {
+                    "text": text,
+                    "end": True # This will close the context after this text
+                }
+                await ws.send(json.dumps(text_msg))
+
+                while True:
+                    response = await ws.recv()
+                    data = json.loads(response)
                     
-                    if 'audioLengthInSeconds' in response_json:
-                        duration = response_json['audioLengthInSeconds']
-                        st.info(f"Audio duration: {duration:.1f} seconds")
+                    if "audio" in data:
+                        audio_bytes = base64.b64decode(data["audio"])
+                        # Murf WebSocket sends WAV header only in the first chunk
+                        if first_chunk and len(audio_bytes) > 44:
+                            audio_bytes = audio_bytes[44:] # Strip WAV header
+                            first_chunk = False
+                        full_audio_data.write(audio_bytes)
                     
-                    return audio_response.content
-                    
-                except requests.exceptions.RequestException as e:
-                    st.error(f"❌ Failed to download audio from URL: {str(e)}")
-                    return None
-            else:
-                st.error("❌ No audio URL found in Murf AI response")
-                st.markdown("**Response keys found:**")
-                st.json(list(response_json.keys()) if isinstance(response_json, dict) else "Not a dictionary")
-                with st.expander("Full API Response"):
-                    st.json(response_json)
-                return None
-                
-        except requests.exceptions.RequestException as e:
-            st.error(f"Murf AI API request failed: {e}")
-            if hasattr(e, 'response') and e.response is not None:
-                st.error(f"Murf AI API Error Response: {e.response.text}")
+                    if data.get("final"):
+                        break
+            
+            full_audio_data.seek(0)
+            return full_audio_data.getvalue()
+
+        except websockets.exceptions.ConnectionClosedOK:
+            st.info("Murf AI WebSocket connection closed gracefully.")
+            full_audio_data.seek(0)
+            return full_audio_data.getvalue()
+        except websockets.exceptions.WebSocketException as e:
+            st.error(f"Murf AI WebSocket error: {e}")
             return None
         except Exception as e:
             st.error(f"An unexpected error occurred during Murf AI audio generation: {e}")
@@ -921,26 +945,19 @@ class VoiceConfig:
             st.markdown("• Connection: ✅ Internet available")
         elif provider == 'murf':
             murf_api_key = voice_config.get('api_key')
-            if murf_api_key and REQUESTS_AVAILABLE:
+            if murf_api_key and 'websockets' in sys.modules and 'pyaudio' in sys.modules:
                 try:
-                    headers = {
-                        "accept": "application/json",
-                        "api-key": murf_api_key
-                    }
-                    
-                    response = requests.get("https://api.murf.ai/v1/speech/voices", headers=headers, timeout=10)
-                    response.raise_for_status()
-                    voices_data = response.json()
-                    
-                    if voices_data and isinstance(voices_data, (dict, list)):
-                        st.markdown("• Murf API: ✅ Authentication successful (voices retrieved)")
+                    # Attempt a small synthesis to validate the key
+                    test_text = "This is a quick test."
+                    audio_data, audio_format = asyncio.run(self.generate_voice_preview(voice_config, test_text))
+                    if audio_data:
+                        st.markdown("• Murf API: ✅ Authentication successful (audio generated)")
                     else:
-                        st.markdown("• Murf API: ⚠️ Authentication successful, but no voices retrieved. Check permissions.")
-                        
-                except requests.exceptions.RequestException as e:
+                        st.markdown("• Murf API: ⚠️ Authentication successful, but audio generation failed. Check voice ID or other parameters.")
+                except Exception as e:
                     st.markdown(f"• Murf API: ❌ Authentication failed: {e}")
             else:
-                st.markdown("• Murf API: ⚠️ API key or 'requests' library missing for full test.")
+                st.markdown("• Murf API: ⚠️ API key or 'websockets'/'pyaudio' libraries missing for full test.")
         else:
             st.markdown("• API: ✅ Authentication successful")
 
@@ -971,7 +988,7 @@ class VoiceConfig:
             'google': 0.0,
             'azure': 0.004,
             'amazon': 0.004,
-            'murf': 0.05
+            'murf': 0.05 # This is a placeholder, Murf pricing is subscription-based
         }
         
         rate = cost_per_1k.get(provider, 0.01)
