@@ -911,7 +911,7 @@ class BotCreator:
         with st.spinner(f"🎵 Generating test audio with {provider}..."):
             try:
                 if self.voice_config_manager:
-                    audio_data, audio_format = self.voice_config_manager.generate_voice_preview_sync(voice_config, test_text)
+                    audio_data, audio_format = self.voice_config_manager.generate_voice_preview(voice_config, test_text)
                     if audio_data:
                         st.success("✅ Voice test completed successfully!")
                         st.audio(audio_data, format=audio_format)
