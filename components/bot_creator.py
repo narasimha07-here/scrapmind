@@ -1631,7 +1631,7 @@ print(response.json())
             voice_config = bot_config.get('voice_config', {})
             voice_enabled = voice_config.get('enabled', False)
             voice_provider = voice_config.get('provider', 'murf')
-            response_mode = voice_config.get('response_mode', 'voice')
+            response_mode = voice_config.get('response_mode', 'text')
 
             kb_config = bot_config.get('knowledge_base', {})
             kb_enabled = kb_config.get('enabled', False)
@@ -1642,14 +1642,21 @@ print(response.json())
             system_message = adv_config.get('system_message', '')
             custom_instructions = adv_config.get('custom_instructions', '')
 
-            # --- Start of conditional code blocks for main.py ---
+            # Process system message content
+            if system_message.strip():
+                bot_system_msg = system_message.replace('"', '\\"')
+            elif custom_instructions.strip():
+                bot_system_msg = custom_instructions.replace('"', '\\"')
+            else:
+                bot_system_msg = f'You are {bot_name}, a helpful AI assistant.'
+
+            # --- Generate conditional code blocks ---
 
             # Knowledge Base Imports
-            kb_imports_code = ""
             if kb_enabled:
-                kb_imports_code = '''try:
+                kb_imports_block = '''try:
         from sentence_transformers import SentenceTransformer
-        from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
+        from langchain.text_splitter import RecursiveCharacterTextSplitter
         from langchain_community.vectorstores import Chroma
         from langchain.schema import Document
         import chromadb
@@ -1658,12 +1665,11 @@ print(response.json())
         KB_AVAILABLE = False
         print("Warning: Knowledge base dependencies not available")'''
             else:
-                kb_imports_code = "KB_AVAILABLE = False"
+                kb_imports_block = "KB_AVAILABLE = False"
 
             # Voice Processing Imports
-            voice_imports_code = ""
             if voice_enabled:
-                voice_imports_code = '''try:
+                voice_imports_block = '''try:
         import base64
         import io
         VOICE_AVAILABLE = True
@@ -1671,12 +1677,15 @@ print(response.json())
         VOICE_AVAILABLE = False
         print("Warning: Voice processing dependencies not available")'''
             else:
-                voice_imports_code = "VOICE_AVAILABLE = False"
+                voice_imports_block = "VOICE_AVAILABLE = False"
 
-            # Knowledge Base Class Definition
-            kb_class_code = ""
+            # Knowledge Base Class
             if kb_enabled:
-                kb_class_code = f'''
+                chunk_size = kb_config.get('chunk_size', 1000)
+                chunk_overlap = kb_config.get('chunk_overlap', 200)
+                max_results = kb_config.get('max_results', 4)
+                
+                kb_class_block = f'''
     class KnowledgeBase:
         """Knowledge base for RAG functionality"""
 
@@ -1694,12 +1703,10 @@ print(response.json())
                     return False
 
                 self.embeddings = SentenceTransformer('{embedding_model}')
-
                 self.text_splitter = RecursiveCharacterTextSplitter(
-                    chunk_size={kb_config.get('chunk_size', 1000)},
-                    chunk_overlap={kb_config.get('chunk_overlap', 200)}
+                    chunk_size={chunk_size},
+                    chunk_overlap={chunk_overlap}
                 )
-
                 self.vectorstore = None
                 self.initialized = True
                 logger.info("Knowledge base initialized successfully")
@@ -1731,8 +1738,6 @@ print(response.json())
 
                 if self.vectorstore is None:
                     texts = [doc.page_content for doc in doc_chunks]
-                    embeddings_list = [self.embed_text(text) for text in texts]
-
                     self.vectorstore = Chroma.from_texts(
                         texts=texts,
                         embedding=self.embeddings,
@@ -1749,7 +1754,7 @@ print(response.json())
                 logger.error(f"Failed to add documents: {{str(e)}}")
                 return False
 
-        async def search(self, query: str, k: int = {kb_config.get('max_results', 4)}) -> List[str]:
+        async def search(self, query: str, k: int = {max_results}) -> List[str]:
             """Search for relevant documents"""
             try:
                 if not self.vectorstore:
@@ -1761,21 +1766,27 @@ print(response.json())
             except Exception as e:
                 logger.error(f"Search error: {{str(e)}}")
                 return []'''
+            else:
+                kb_class_block = ""
 
-            # Voice Synthesizer Class Definition
-            voice_synthesizer_class_code = ""
+            # Voice Synthesizer Class
             if voice_enabled:
-                voice_synthesizer_class_code = f'''
+                voice_id = voice_config.get('voice', '')
+                voice_lang = voice_config.get('language', 'en')
+                voice_speed = voice_config.get('speed', 1.0)
+                voice_volume = voice_config.get('volume', 0.8)
+                
+                voice_class_block = f'''
     class VoiceSynthesizer:
         """Voice synthesis for text-to-speech"""
 
         def __init__(self):
             self.provider = "{voice_provider}"
             self.api_key = os.getenv("{voice_provider.upper()}_API_KEY", "")
-            self.voice_id = "{voice_config.get('voice', '')}"
-            self.language = "{voice_config.get('language', 'en')}"
-            self.speed = {voice_config.get('speed', 1.0)}
-            self.volume = {voice_config.get('volume', 0.8)}
+            self.voice_id = "{voice_id}"
+            self.language = "{voice_lang}"
+            self.speed = {voice_speed}
+            self.volume = {voice_volume}
 
         async def synthesize(self, text: str) -> tuple[Optional[bytes], Optional[str]]:
             """Convert text to speech"""
@@ -1839,31 +1850,32 @@ print(response.json())
 
         async def _synthesize_openai(self, text: str) -> tuple[Optional[bytes], Optional[str]]:
             """Synthesize speech using OpenAI TTS"""
-            # Placeholder for OpenAI TTS implementation
             return None, None
 
         async def _synthesize_elevenlabs(self, text: str) -> tuple[Optional[bytes], Optional[str]]:
             """Synthesize speech using ElevenLabs"""
-            # Placeholder for ElevenLabs implementation
             return None, None'''
+            else:
+                voice_class_block = ""
 
-            # Initialize Services Block
-            initialize_services_kb_code = ""
+            # Initialize Services Blocks
             if kb_enabled:
-                initialize_services_kb_code = '''    if KB_AVAILABLE:
+                kb_init_block = '''    if KB_AVAILABLE:
             knowledge_base = KnowledgeBase()
             await knowledge_base.initialize()'''
+            else:
+                kb_init_block = ""
 
-            initialize_services_voice_code = ""
             if voice_enabled:
-                initialize_services_voice_code = '''    if VOICE_AVAILABLE:
+                voice_init_block = '''    if VOICE_AVAILABLE:
             voice_synthesizer = VoiceSynthesizer()
             logger.info("Voice synthesizer initialized")'''
+            else:
+                voice_init_block = ""
 
-            # Chat Endpoint Knowledge Base Logic
-            chat_endpoint_kb_logic = ""
+            # Chat endpoint logic blocks
             if kb_enabled:
-                chat_endpoint_kb_logic = '''        relevant_docs = []
+                kb_chat_logic = '''        relevant_docs = []
             if knowledge_base and knowledge_base.initialized:
                 relevant_docs = await knowledge_base.search(request.message)
                 if relevant_docs:
@@ -1875,26 +1887,26 @@ print(response.json())
             else:
                 messages.append({"role": "user", "content": request.message})'''
             else:
-                chat_endpoint_kb_logic = '''        messages.append({"role": "user", "content": request.message})'''
+                kb_chat_logic = '        messages.append({"role": "user", "content": request.message})'
 
-            # Chat Endpoint Voice Logic
-            chat_endpoint_voice_logic = ""
             if voice_enabled:
-                chat_endpoint_voice_logic = f'''        if "{response_mode}" in ["voice", "both"] and voice_synthesizer:
+                voice_chat_logic = f'''        if "{response_mode}" in ["voice", "both"] and voice_synthesizer:
                 voice_bytes, voice_fmt = await voice_synthesizer.synthesize(response_text)
                 if voice_bytes:
                     voice_data = base64.b64encode(voice_bytes).decode('utf-8')
                     voice_format = voice_fmt'''
+            else:
+                voice_chat_logic = ""
 
-            # Chat Endpoint Metadata Logic
-            chat_endpoint_metadata_kb_logic = ""
+            # Metadata logic
             if kb_enabled:
-                chat_endpoint_metadata_kb_logic = '''                "relevant_docs_count": len(relevant_docs),'''
+                kb_metadata = '                "relevant_docs_count": len(relevant_docs),'
+            else:
+                kb_metadata = ""
 
             # Knowledge Base Endpoints
-            kb_endpoints_code = ""
             if kb_enabled:
-                kb_endpoints_code = '''
+                kb_endpoints_block = '''
     @app.post("/knowledge-base/add")
     async def add_knowledge(documents: List[str]):
         """Add documents to the knowledge base"""
@@ -1933,9 +1945,10 @@ print(response.json())
         except Exception as e:
             logger.error(f"Search knowledge error: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))'''
+            else:
+                kb_endpoints_block = ""
 
-            # --- End of conditional code blocks ---
-
+            # --- Build the main.py file ---
             main_py = f'''"""
     {bot_name} - FastAPI Implementation
     Generated automatically by AI Chatbot Creator
@@ -1944,7 +1957,6 @@ print(response.json())
     - Chat endpoints with streaming support
     {f"- Voice response integration (Provider: {voice_provider})" if voice_enabled else ""}
     - Response mode: {response_mode.upper()}
-    {f"- Voice response generation" if voice_enabled else ""}
     {f"- Knowledge base integration with RAG" if kb_enabled else ""}
     - Streaming responses
     - Conversation context management
@@ -1974,10 +1986,10 @@ print(response.json())
         print("Warning: requests not available - some features may not work")
 
     # Knowledge base imports
-    {kb_imports_code}
+    {kb_imports_block}
 
     # Voice processing imports
-    {voice_imports_code}
+    {voice_imports_block}
 
     logging.basicConfig(
         level=logging.INFO,
@@ -2106,9 +2118,9 @@ print(response.json())
                 logger.error(f"Streaming error: {{str(e)}}")
                 yield f"Error: {{str(e)}}"
 
-    {kb_class_code}
+    {kb_class_block}
 
-    {voice_synthesizer_class_code}
+    {voice_class_block}
 
     async def initialize_services():
         """Initialize all required services"""
@@ -2121,9 +2133,9 @@ print(response.json())
         else:
             logger.warning("OPENROUTER_API_KEY not found - chat functionality will be limited")
 
-    {initialize_services_kb_code}
+    {kb_init_block}
 
-    {initialize_services_voice_code}
+    {voice_init_block}
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -2160,11 +2172,19 @@ print(response.json())
     @app.get("/health", response_model=HealthResponse)
     async def health_check():
         """Health check endpoint"""
-        services = {{}}
-        services["openrouter"] = "available" if openrouter_client else "unavailable"
+        services = {{
+            "openrouter": "available" if openrouter_client else "unavailable"
+        }}
         
-        {'services["knowledge_base"] = "available" if knowledge_base and knowledge_base.initialized else "unavailable"' if kb_enabled else ''}
-        {'services["voice_synthesizer"] = "available" if voice_synthesizer else "unavailable"' if voice_enabled else ''}
+        if KB_AVAILABLE and knowledge_base:
+            services["knowledge_base"] = "available" if knowledge_base.initialized else "unavailable"
+        elif {str(kb_enabled).lower()}:
+            services["knowledge_base"] = "unavailable"
+        
+        if VOICE_AVAILABLE and voice_synthesizer:
+            services["voice_synthesizer"] = "available"
+        elif {str(voice_enabled).lower()}:
+            services["voice_synthesizer"] = "unavailable"
 
         return HealthResponse(
             status="healthy",
@@ -2183,20 +2203,12 @@ print(response.json())
                 raise HTTPException(status_code=503, detail="OpenRouter client not available")
 
             messages = []
-            # Handle system message with proper escaping
-            if system_message.strip():
-                system_content = system_message
-            elif custom_instructions.strip():
-                system_content = custom_instructions
-            else:
-                system_content = f'You are {bot_name}, a helpful AI assistant.'
-                
-            messages.append({"role": "system", "content": system_content})
+            messages.append({{"role": "system", "content": "{bot_system_msg}"}})
 
             if request.context:
                 messages.extend(request.context[-{context_window}:])
 
-    {chat_endpoint_kb_logic}
+    {kb_chat_logic}
 
             if request.stream:
                 async def generate_stream():
@@ -2230,12 +2242,12 @@ print(response.json())
 
                 voice_data = None
                 voice_format = None
-    {chat_endpoint_voice_logic}
+    {voice_chat_logic}
 
                 final_response_text = response_text if "{response_mode}" in ["text", "both"] else ""
 
                 metadata = {{
-    {chat_endpoint_metadata_kb_logic}
+    {kb_metadata}
                     "response_length": len(response_text),
                     "model_used": result.get("model", "{model}"),
                     "response_mode": "{response_mode}",
@@ -2259,7 +2271,7 @@ print(response.json())
             logger.error(f"Chat endpoint error: {{str(e)}}")
             raise HTTPException(status_code=500, detail=f"Internal server error: {{str(e)}}")
 
-    {kb_endpoints_code}
+    {kb_endpoints_block}
 
     @app.get("/config")
     async def get_config():
@@ -2289,20 +2301,28 @@ print(response.json())
         )
     '''
 
-            requirements_txt = f'''fastapi>=0.104.1
-    uvicorn[standard]>=0.24.0
-    pydantic>=2.0.0
-    python-multipart>=0.0.6
-    requests>=2.31.0
-    python-dotenv>=1.0.0
-    {f"sentence-transformers>=2.2.0" if kb_enabled else ""}
-    {f"langchain>=0.0.350" if kb_enabled else ""}
-    {f"langchain-community>=0.0.10" if kb_enabled else ""}
-    {f"chromadb>=0.4.15" if kb_enabled else ""}
-    {f"numpy>=1.24.0" if kb_enabled else ""}
-    {f"scikit-learn>=1.3.0" if kb_enabled else ""}
-    gunicorn>=21.2.0
-    '''
+            # Build requirements.txt
+            requirements_lines = [
+                "fastapi>=0.104.1",
+                "uvicorn[standard]>=0.24.0", 
+                "pydantic>=2.0.0",
+                "python-multipart>=0.0.6",
+                "requests>=2.31.0",
+                "python-dotenv>=1.0.0"
+            ]
+            
+            if kb_enabled:
+                requirements_lines.extend([
+                    "sentence-transformers>=2.2.0",
+                    "langchain>=0.0.350", 
+                    "langchain-community>=0.0.10",
+                    "chromadb>=0.4.15",
+                    "numpy>=1.24.0",
+                    "scikit-learn>=1.3.0"
+                ])
+                
+            requirements_lines.append("gunicorn>=21.2.0")
+            requirements_txt = "\n".join(requirements_lines)
 
             dockerfile = f'''FROM python:3.11-slim
 
@@ -2336,10 +2356,10 @@ print(response.json())
     CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
     '''
 
-            # Create environment variables
+            # Build environment file
             env_lines = [
                 "ENVIRONMENT=production",
-                "PORT=8000",
+                "PORT=8000", 
                 f'APP_NAME="{bot_name}"',
                 "",
                 "OPENROUTER_API_KEY=your_openrouter_api_key_here",
@@ -2354,7 +2374,7 @@ print(response.json())
                 env_lines.extend([
                     f"VOICE_ENABLED={str(voice_enabled).lower()}",
                     f'RESPONSE_MODE="{response_mode}"',
-                    f'VOICE_PROVIDER="{voice_provider}"',
+                    f'VOICE_PROVIDER="{voice_provider}"', 
                     f'{voice_provider.upper()}_API_KEY=your_{voice_provider}_api_key_here',
                     f'VOICE_ID="{voice_config.get("voice", "")}"',
                     f'VOICE_LANGUAGE="{voice_config.get("language", "en")}"',
@@ -2387,14 +2407,14 @@ print(response.json())
                 f'CUSTOM_INSTRUCTIONS="{escaped_custom_instructions}"',
                 "",
                 "ALLOWED_ORIGINS=*",
-                "ALLOWED_METHODS=GET,POST,PUT,DELETE",
+                "ALLOWED_METHODS=GET,POST,PUT,DELETE", 
                 "ALLOWED_HEADERS=*",
                 "",
                 "LOG_LEVEL=INFO",
                 "LOG_FORMAT=json"
             ])
 
-            env_example = "\\n".join(env_lines)
+            env_example = "\n".join(env_lines)
             
             return {
                 'main.py': main_py,
