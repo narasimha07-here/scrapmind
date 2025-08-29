@@ -2183,9 +2183,15 @@ print(response.json())
                 raise HTTPException(status_code=503, detail="OpenRouter client not available")
 
             messages = []
-            system_msg = "{system_message or custom_instructions or f'You are {bot_name}, a helpful AI assistant.'}"
-            if system_msg.strip():
-                messages.append({{"role": "system", "content": system_msg}})
+            # Handle system message with proper escaping
+            if system_message.strip():
+                system_content = system_message
+            elif custom_instructions.strip():
+                system_content = custom_instructions
+            else:
+                system_content = f'You are {bot_name}, a helpful AI assistant.'
+                
+            messages.append({"role": "system", "content": system_content})
 
             if request.context:
                 messages.extend(request.context[-{context_window}:])
@@ -2368,13 +2374,17 @@ print(response.json())
                     ""
                 ])
 
+            # Handle system message and custom instructions with proper escaping
+            escaped_system_msg = system_message.replace('"', '\\"') if system_message else ""
+            escaped_custom_instructions = custom_instructions.replace('"', '\\"') if custom_instructions else ""
+            
             env_lines.extend([
                 f"CONTEXT_WINDOW={context_window}",
                 f'RESPONSE_FORMAT="{adv_config.get("response_format", "conversational")}"',
                 f'ERROR_HANDLING="{adv_config.get("error_handling", "graceful")}"',
                 "",
-                f'SYSTEM_MESSAGE="{system_message.replace('"', '\\"') if system_message else ""}"',
-                f'CUSTOM_INSTRUCTIONS="{custom_instructions.replace('"', '\\"') if custom_instructions else ""}"',
+                f'SYSTEM_MESSAGE="{escaped_system_msg}"',
+                f'CUSTOM_INSTRUCTIONS="{escaped_custom_instructions}"',
                 "",
                 "ALLOWED_ORIGINS=*",
                 "ALLOWED_METHODS=GET,POST,PUT,DELETE",
