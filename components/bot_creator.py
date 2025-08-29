@@ -2276,6 +2276,7 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \\
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 '''
             
+<<<<<<< HEAD
             env_example = f'''ENVIRONMENT=production
 PORT=8000
 APP_NAME="{bot_name}"
@@ -2316,6 +2317,64 @@ ALLOWED_HEADERS=*
 LOG_LEVEL=INFO
 LOG_FORMAT=json
 '''
+=======
+            # Build env variables
+            env_vars = [
+                "ENVIRONMENT=production",
+                "PORT=8000",
+                f'APP_NAME="{bot_name}"',
+                "",
+                "OPENROUTER_API_KEY=your_openrouter_api_key_here",
+                "",
+                f'DEFAULT_MODEL="{model}"',
+                f"DEFAULT_TEMPERATURE={temperature}",
+                f"DEFAULT_MAX_TOKENS={max_tokens}",
+                ""
+            ]
+            
+            if voice_enabled:
+                env_vars.extend([
+                    f"VOICE_ENABLED={str(voice_enabled).lower()}",
+                    f'RESPONSE_MODE="{response_mode}"',
+                    f'VOICE_PROVIDER="{voice_provider}"',
+                    f"{voice_provider.upper()}_API_KEY=your_{voice_provider}_api_key_here",
+                    f'VOICE_ID="{voice_config.get("voice", "")}"',
+                    f'VOICE_LANGUAGE="{voice_config.get("language", "en")}"',
+                    f"VOICE_SPEED={voice_config.get('speed', 1.0)}",
+                    f"VOICE_VOLUME={voice_config.get('volume', 0.8)}",
+                    ""
+                ])
+            
+            if kb_enabled:
+                env_vars.extend([
+                    f"KNOWLEDGE_BASE_ENABLED={str(kb_enabled).lower()}",
+                    f'EMBEDDING_MODEL="{embedding_model}"',
+                    f"CHUNK_SIZE={kb_config.get('chunk_size', 1000)}",
+                    f"CHUNK_OVERLAP={kb_config.get('chunk_overlap', 200)}",
+                    f"MAX_SEARCH_RESULTS={kb_config.get('max_results', 4)}",
+                    f"SIMILARITY_THRESHOLD={kb_config.get('similarity_threshold', 0.7)}",
+                    ""
+                ])
+            
+            env_vars.extend([
+                f"CONTEXT_WINDOW={context_window}",
+                f'RESPONSE_FORMAT="{adv_config.get("response_format", "conversational")}"',
+                f'ERROR_HANDLING="{adv_config.get("error_handling", "graceful")}"',
+                "",
+                escaped_message = system_message.replace('"', r'\"')
+                f'''SYSTEM_MESSAGE="{escaped_message}"'''
+                f'CUSTOM_INSTRUCTIONS="{custom_instructions.replace('"', '\\"') if custom_instructions else ""}"',
+                "",
+                "ALLOWED_ORIGINS=*",
+                "ALLOWED_METHODS=GET,POST,PUT,DELETE",
+                "ALLOWED_HEADERS=*",
+                "",
+                "LOG_LEVEL=INFO",
+                "LOG_FORMAT=json"
+            ])
+            
+            env_example = "\n".join(env_vars)
+>>>>>>> ed551e2c8753b6766003ed20bcb0e5a5e7b143f6
             
             return {
                 'main.py': main_py,
