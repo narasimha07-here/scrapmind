@@ -1620,35 +1620,34 @@ print(response.json())
                     st.error("❌ Failed to generate FastAPI code. Please try again.")
 
     
-
     def generate_fastapi_code(self, bot_config: Dict) -> Dict[str, str]:
-            try:
-                bot_name = bot_config.get('name', 'AI Assistant')
-                bot_description = bot_config.get('description', 'AI Assistant with FastAPI')
-                model = bot_config.get('model', 'meta-llama/llama-3.2-3b-instruct:free')
-                temperature = bot_config.get('temperature', 0.7)
-                max_tokens = bot_config.get('max_tokens', 1000)
+        try:
+            bot_name = bot_config.get('name', 'AI Assistant')
+            bot_description = bot_config.get('description', 'AI Assistant with FastAPI')
+            model = bot_config.get('model', 'meta-llama/llama-3.2-3b-instruct:free')
+            temperature = bot_config.get('temperature', 0.7)
+            max_tokens = bot_config.get('max_tokens', 1000)
 
-                voice_config = bot_config.get('voice_config', {})
-                voice_enabled = voice_config.get('enabled', False)
-                voice_provider = voice_config.get('provider', 'murf')
-                response_mode = voice_config.get('response_mode', 'voice')
+            voice_config = bot_config.get('voice_config', {})
+            voice_enabled = voice_config.get('enabled', False)
+            voice_provider = voice_config.get('provider', 'murf')
+            response_mode = voice_config.get('response_mode', 'voice')
 
-                kb_config = bot_config.get('knowledge_base', {})
-                kb_enabled = kb_config.get('enabled', False)
-                embedding_model = kb_config.get('embedding_model', 'sentence-transformers/all-MiniLM-L6-v2')
+            kb_config = bot_config.get('knowledge_base', {})
+            kb_enabled = kb_config.get('enabled', False)
+            embedding_model = kb_config.get('embedding_model', 'sentence-transformers/all-MiniLM-L6-v2')
 
-                adv_config = bot_config.get('advanced_settings', {})
-                context_window = adv_config.get('context_window', 5)
-                system_message = adv_config.get('system_message', '')
-                custom_instructions = adv_config.get('custom_instructions', '')
+            adv_config = bot_config.get('advanced_settings', {})
+            context_window = adv_config.get('context_window', 5)
+            system_message = adv_config.get('system_message', '')
+            custom_instructions = adv_config.get('custom_instructions', '')
 
-                # --- Start of conditional code blocks for main.py ---
+            # --- Start of conditional code blocks for main.py ---
 
-                # Knowledge Base Imports
-                kb_imports_code = ""
-                if kb_enabled:
-                    kb_imports_code = f'''try:
+            # Knowledge Base Imports
+            kb_imports_code = ""
+            if kb_enabled:
+                kb_imports_code = '''try:
         from sentence_transformers import SentenceTransformer
         from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
         from langchain_community.vectorstores import Chroma
@@ -1658,26 +1657,26 @@ print(response.json())
     except ImportError:
         KB_AVAILABLE = False
         print("Warning: Knowledge base dependencies not available")'''
-                else:
-                    kb_imports_code = "KB_AVAILABLE = False"
+            else:
+                kb_imports_code = "KB_AVAILABLE = False"
 
-                # Voice Processing Imports
-                voice_imports_code = ""
-                if voice_enabled:
-                    voice_imports_code = f'''try:
+            # Voice Processing Imports
+            voice_imports_code = ""
+            if voice_enabled:
+                voice_imports_code = '''try:
         import base64
         import io
         VOICE_AVAILABLE = True
     except ImportError:
         VOICE_AVAILABLE = False
         print("Warning: Voice processing dependencies not available")'''
-                else:
-                    voice_imports_code = "VOICE_AVAILABLE = False"
+            else:
+                voice_imports_code = "VOICE_AVAILABLE = False"
 
-                # Knowledge Base Class Definition
-                kb_class_code = ""
-                if kb_enabled:
-                    kb_class_code = f'''
+            # Knowledge Base Class Definition
+            kb_class_code = ""
+            if kb_enabled:
+                kb_class_code = f'''
     class KnowledgeBase:
         """Knowledge base for RAG functionality"""
 
@@ -1763,10 +1762,10 @@ print(response.json())
                 logger.error(f"Search error: {{str(e)}}")
                 return []'''
 
-                # Voice Synthesizer Class Definition
-                voice_synthesizer_class_code = ""
-                if voice_enabled:
-                    voice_synthesizer_class_code = f'''
+            # Voice Synthesizer Class Definition
+            voice_synthesizer_class_code = ""
+            if voice_enabled:
+                voice_synthesizer_class_code = f'''
     class VoiceSynthesizer:
         """Voice synthesis for text-to-speech"""
 
@@ -1848,54 +1847,54 @@ print(response.json())
             # Placeholder for ElevenLabs implementation
             return None, None'''
 
-                # Initialize Services Block
-                initialize_services_kb_code = ""
-                if kb_enabled:
-                    initialize_services_kb_code = f'''    if KB_AVAILABLE:
+            # Initialize Services Block
+            initialize_services_kb_code = ""
+            if kb_enabled:
+                initialize_services_kb_code = '''    if KB_AVAILABLE:
             knowledge_base = KnowledgeBase()
             await knowledge_base.initialize()'''
 
-                initialize_services_voice_code = ""
-                if voice_enabled:
-                    initialize_services_voice_code = f'''    if VOICE_AVAILABLE:
+            initialize_services_voice_code = ""
+            if voice_enabled:
+                initialize_services_voice_code = '''    if VOICE_AVAILABLE:
             voice_synthesizer = VoiceSynthesizer()
             logger.info("Voice synthesizer initialized")'''
 
-                # Chat Endpoint Knowledge Base Logic
-                chat_endpoint_kb_logic = ""
-                if kb_enabled:
-                    chat_endpoint_kb_logic = f'''        relevant_docs = []
+            # Chat Endpoint Knowledge Base Logic
+            chat_endpoint_kb_logic = ""
+            if kb_enabled:
+                chat_endpoint_kb_logic = '''        relevant_docs = []
             if knowledge_base and knowledge_base.initialized:
                 relevant_docs = await knowledge_base.search(request.message)
                 if relevant_docs:
                     context = "\\n".join(relevant_docs)
-                    enhanced_message = f"Context from knowledge base:\\n{{context}}\\n\\nUser question: {{request.message}}"
-                    messages.append({{"role": "user", "content": enhanced_message}})
+                    enhanced_message = f"Context from knowledge base:\\n{context}\\n\\nUser question: {request.message}"
+                    messages.append({"role": "user", "content": enhanced_message})
                 else:
-                    messages.append({{"role": "user", "content": request.message}})
+                    messages.append({"role": "user", "content": request.message})
             else:
-                messages.append({{"role": "user", "content": request.message}})'''
-                else:
-                    chat_endpoint_kb_logic = '''            messages.append({"role": "user", "content": request.message})'''
+                messages.append({"role": "user", "content": request.message})'''
+            else:
+                chat_endpoint_kb_logic = '''        messages.append({"role": "user", "content": request.message})'''
 
-                # Chat Endpoint Voice Logic
-                chat_endpoint_voice_logic = ""
-                if voice_enabled:
-                    chat_endpoint_voice_logic = f'''            if "{response_mode}" in ["voice", "both"] and voice_synthesizer:
-                    voice_bytes, voice_fmt = await voice_synthesizer.synthesize(response_text)
-                    if voice_bytes:
-                        voice_data = base64.b64encode(voice_bytes).decode('utf-8')
-                        voice_format = voice_fmt'''
+            # Chat Endpoint Voice Logic
+            chat_endpoint_voice_logic = ""
+            if voice_enabled:
+                chat_endpoint_voice_logic = f'''        if "{response_mode}" in ["voice", "both"] and voice_synthesizer:
+                voice_bytes, voice_fmt = await voice_synthesizer.synthesize(response_text)
+                if voice_bytes:
+                    voice_data = base64.b64encode(voice_bytes).decode('utf-8')
+                    voice_format = voice_fmt'''
 
-                # Chat Endpoint Metadata Logic
-                chat_endpoint_metadata_kb_logic = ""
-                if kb_enabled:
-                    chat_endpoint_metadata_kb_logic = f'''                    "relevant_docs_count": len(relevant_docs),'''
+            # Chat Endpoint Metadata Logic
+            chat_endpoint_metadata_kb_logic = ""
+            if kb_enabled:
+                chat_endpoint_metadata_kb_logic = '''                "relevant_docs_count": len(relevant_docs),'''
 
-                # Knowledge Base Endpoints
-                kb_endpoints_code = ""
-                if kb_enabled:
-                    kb_endpoints_code = f'''
+            # Knowledge Base Endpoints
+            kb_endpoints_code = ""
+            if kb_enabled:
+                kb_endpoints_code = '''
     @app.post("/knowledge-base/add")
     async def add_knowledge(documents: List[str]):
         """Add documents to the knowledge base"""
@@ -1905,14 +1904,14 @@ print(response.json())
 
             success = await knowledge_base.add_documents(documents)
             if success:
-                return {{"message": f"Successfully added {{len(documents)}} documents"}}
+                return {"message": f"Successfully added {len(documents)} documents"}
             else:
                 raise HTTPException(status_code=500, detail="Failed to add documents")
 
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Add knowledge error: {{str(e)}}")
+            logger.error(f"Add knowledge error: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.get("/knowledge-base/search")
@@ -1923,30 +1922,30 @@ print(response.json())
                 raise HTTPException(status_code=503, detail="Knowledge base not available")
 
             results = await knowledge_base.search(query, k=limit)
-            return {{
+            return {
                 "query": query,
                 "results": results,
                 "count": len(results)
-            }}
+            }
 
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Search knowledge error: {{str(e)}}")
+            logger.error(f"Search knowledge error: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))'''
 
-                # --- End of conditional code blocks ---
+            # --- End of conditional code blocks ---
 
-                main_py = f'''"""
+            main_py = f'''"""
     {bot_name} - FastAPI Implementation
     Generated automatically by AI Chatbot Creator
 
     This is a complete FastAPI application for your AI chatbot with:
     - Chat endpoints with streaming support
-    - Voice response integration (if enabled)
+    {f"- Voice response integration (Provider: {voice_provider})" if voice_enabled else ""}
     - Response mode: {response_mode.upper()}
-    {"- Voice response generation" if voice_enabled else ""}
-    {"- Knowledge base integration with RAG" if kb_enabled else ""}
+    {f"- Voice response generation" if voice_enabled else ""}
+    {f"- Knowledge base integration with RAG" if kb_enabled else ""}
     - Streaming responses
     - Conversation context management
     - Health monitoring
@@ -1974,10 +1973,10 @@ print(response.json())
         REQUESTS_AVAILABLE = False
         print("Warning: requests not available - some features may not work")
 
-    {"# Knowledge base imports" if kb_enabled else ""}
+    # Knowledge base imports
     {kb_imports_code}
 
-    {"# Voice processing imports" if voice_enabled else ""}
+    # Voice processing imports
     {voice_imports_code}
 
     logging.basicConfig(
@@ -2140,8 +2139,8 @@ print(response.json())
 
     This API provides chat functionality with the following features:
     - Response Mode: {response_mode.upper()}
-    {"- Voice response generation" if voice_enabled else ""}
-    {"- Knowledge base integration with RAG" if kb_enabled else ""}
+    {f"- Voice response generation (Provider: {voice_provider})" if voice_enabled else ""}
+    {f"- Knowledge base integration with RAG" if kb_enabled else ""}
     - Streaming responses
     - Conversation context management
     - Health monitoring
@@ -2161,35 +2160,17 @@ print(response.json())
     @app.get("/health", response_model=HealthResponse)
     async def health_check():
         """Health check endpoint"""
-        services = {{
-            "openrouter": "available" if openrouter_client else "unavailable",
-            {"knowledge_base": "available" if knowledge_base and knowledge_base.initialized else "unavailable" if kb_enabled else ""},
-            {"voice_synthesizer": "available" if voice_synthesizer else "unavailable" if voice_enabled else ""}
-        }}
-
-        # Remove trailing commas from services dict (if any were left by conditional logic)
-        # This part of the original code was trying to remove trailing commas from string values,
-        # but the dictionary syntax itself doesn't allow trailing commas in keys.
-        # The conditional inclusion of dictionary items should handle this.
-        # If a service is not enabled, its key-value pair simply won't be in the dictionary.
-        # The original logic `services = {{k: v.rstrip(',') if isinstance(v, str) and v.endswith(',') else v for k, v in services.items()}}`
-        # is likely unnecessary if the conditional string generation is correct.
-        # Let's ensure the conditional parts generate valid dictionary entries.
+        services = {{}}
+        services["openrouter"] = "available" if openrouter_client else "unavailable"
         
-        # Re-evaluating the services dictionary construction to avoid trailing commas
-        # and ensure correct conditional inclusion.
-        dynamic_services = {{}}
-        dynamic_services["openrouter"] = "available" if openrouter_client else "unavailable"
-        if kb_enabled:
-            dynamic_services["knowledge_base"] = "available" if knowledge_base and knowledge_base.initialized else "unavailable"
-        if voice_enabled:
-            dynamic_services["voice_synthesizer"] = "available" if voice_synthesizer else "unavailable"
+        {'services["knowledge_base"] = "available" if knowledge_base and knowledge_base.initialized else "unavailable"' if kb_enabled else ''}
+        {'services["voice_synthesizer"] = "available" if voice_synthesizer else "unavailable"' if voice_enabled else ''}
 
         return HealthResponse(
             status="healthy",
             timestamp=datetime.now().isoformat(),
             version="1.0.0",
-            services=dynamic_services
+            services=services
         )
 
     @app.post("/chat", response_model=ChatResponse)
@@ -2302,23 +2283,22 @@ print(response.json())
         )
     '''
 
-                requirements_txt = f'''fastapi>=0.104.1
+            requirements_txt = f'''fastapi>=0.104.1
     uvicorn[standard]>=0.24.0
     pydantic>=2.0.0
     python-multipart>=0.0.6
     requests>=2.31.0
     python-dotenv>=1.0.0
-    structlog>=23.0.0
-    {"sentence-transformers>=4.0.0" if kb_enabled else ""}
-    {"langchain>=0.0.350" if kb_enabled else ""}
-    {"langchain-community>=0.0.10" if kb_enabled else ""}
-    {"chromadb>=0.4.15" if kb_enabled else ""}
-    {"numpy>=1.24.0" if kb_enabled else ""}
-    {"scikit-learn>=1.3.0" if kb_enabled else ""}
+    {f"sentence-transformers>=2.2.0" if kb_enabled else ""}
+    {f"langchain>=0.0.350" if kb_enabled else ""}
+    {f"langchain-community>=0.0.10" if kb_enabled else ""}
+    {f"chromadb>=0.4.15" if kb_enabled else ""}
+    {f"numpy>=1.24.0" if kb_enabled else ""}
+    {f"scikit-learn>=1.3.0" if kb_enabled else ""}
     gunicorn>=21.2.0
     '''
 
-                dockerfile = f'''FROM python:3.11-slim
+            dockerfile = f'''FROM python:3.11-slim
 
     WORKDIR /app
 
@@ -2329,6 +2309,7 @@ print(response.json())
         && apt-get install -y --no-install-recommends \\
             gcc \\
             g++ \\
+            curl \\
         && rm -rf /var/lib/apt/lists/*
 
     COPY requirements.txt .
@@ -2349,56 +2330,71 @@ print(response.json())
     CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
     '''
 
-                
-                env_example = f'''ENVIRONMENT=production
-    PORT=8000
-    APP_NAME="{bot_name}"
+            # Create environment variables
+            env_lines = [
+                "ENVIRONMENT=production",
+                "PORT=8000",
+                f'APP_NAME="{bot_name}"',
+                "",
+                "OPENROUTER_API_KEY=your_openrouter_api_key_here",
+                "",
+                f'DEFAULT_MODEL="{model}"',
+                f"DEFAULT_TEMPERATURE={temperature}",
+                f"DEFAULT_MAX_TOKENS={max_tokens}",
+                ""
+            ]
 
-    OPENROUTER_API_KEY=your_openrouter_api_key_here
+            if voice_enabled:
+                env_lines.extend([
+                    f"VOICE_ENABLED={str(voice_enabled).lower()}",
+                    f'RESPONSE_MODE="{response_mode}"',
+                    f'VOICE_PROVIDER="{voice_provider}"',
+                    f'{voice_provider.upper()}_API_KEY=your_{voice_provider}_api_key_here',
+                    f'VOICE_ID="{voice_config.get("voice", "")}"',
+                    f'VOICE_LANGUAGE="{voice_config.get("language", "en")}"',
+                    f"VOICE_SPEED={voice_config.get('speed', 1.0)}",
+                    f"VOICE_VOLUME={voice_config.get('volume', 0.8)}",
+                    ""
+                ])
 
-    DEFAULT_MODEL="{model}"
-    DEFAULT_TEMPERATURE={temperature}
-    DEFAULT_MAX_TOKENS={max_tokens}
+            if kb_enabled:
+                env_lines.extend([
+                    f"KNOWLEDGE_BASE_ENABLED={str(kb_enabled).lower()}",
+                    f'EMBEDDING_MODEL="{embedding_model}"',
+                    f"CHUNK_SIZE={kb_config.get('chunk_size', 1000)}",
+                    f"CHUNK_OVERLAP={kb_config.get('chunk_overlap', 200)}",
+                    f"MAX_SEARCH_RESULTS={kb_config.get('max_results', 4)}",
+                    f"SIMILARITY_THRESHOLD={kb_config.get('similarity_threshold', 0.7)}",
+                    ""
+                ])
 
-    {"VOICE_ENABLED=" + str(voice_enabled).lower() if voice_enabled else ""}
-    {"RESPONSE_MODE=\"" + response_mode + "\"" if voice_enabled else ""}
-    {"VOICE_PROVIDER=\"" + voice_provider + "\"" if voice_enabled else ""}
-    {voice_provider.upper() + "_API_KEY=your_" + voice_provider + "_api_key_here" if voice_enabled else ""}
-    {"VOICE_ID=\"" + voice_config.get('voice', '') + "\"" if voice_enabled else ""}
-    {"VOICE_LANGUAGE=\"" + voice_config.get('language', 'en') + "\"" if voice_enabled else ""}
-    {"VOICE_SPEED=" + str(voice_config.get('speed', 1.0)) if voice_enabled else ""}
-    {"VOICE_VOLUME=" + str(voice_config.get('volume', 0.8)) if voice_enabled else ""}
+            env_lines.extend([
+                f"CONTEXT_WINDOW={context_window}",
+                f'RESPONSE_FORMAT="{adv_config.get("response_format", "conversational")}"',
+                f'ERROR_HANDLING="{adv_config.get("error_handling", "graceful")}"',
+                "",
+                f'SYSTEM_MESSAGE="{system_message.replace('"', '\\"') if system_message else ""}"',
+                f'CUSTOM_INSTRUCTIONS="{custom_instructions.replace('"', '\\"') if custom_instructions else ""}"',
+                "",
+                "ALLOWED_ORIGINS=*",
+                "ALLOWED_METHODS=GET,POST,PUT,DELETE",
+                "ALLOWED_HEADERS=*",
+                "",
+                "LOG_LEVEL=INFO",
+                "LOG_FORMAT=json"
+            ])
 
-    {"KNOWLEDGE_BASE_ENABLED=" + str(kb_enabled).lower() if kb_enabled else ""}
-    {"EMBEDDING_MODEL=\"" + embedding_model + "\"" if kb_enabled else ""}
-    {"CHUNK_SIZE=" + str(kb_config.get('chunk_size', 1000)) if kb_enabled else ""}
-    {"CHUNK_OVERLAP=" + str(kb_config.get('chunk_overlap', 200)) if kb_enabled else ""}
-    {"MAX_SEARCH_RESULTS=" + str(kb_config.get('max_results', 4)) if kb_enabled else ""}
-    {"SIMILARITY_THRESHOLD=" + str(kb_config.get('similarity_threshold', 0.7)) if kb_enabled else ""}
+            env_example = "\\n".join(env_lines)
+            
+            return {
+                'main.py': main_py,
+                'requirements.txt': requirements_txt,
+                'Dockerfile': dockerfile,
+                '.env.example': env_example
+            }
 
-    CONTEXT_WINDOW={context_window}
-    RESPONSE_FORMAT="{adv_config.get('response_format', 'conversational')}"
-    ERROR_HANDLING="{adv_config.get('error_handling', 'graceful')}"
-
-    SYSTEM_MESSAGE="{system_message.replace('"', '\\"') if system_message else ''}"
-    CUSTOM_INSTRUCTIONS="{custom_instructions.replace('"', '\\"') if custom_instructions else ''}"
-
-    ALLOWED_ORIGINS=*
-    ALLOWED_METHODS=GET,POST,PUT,DELETE
-    ALLOWED_HEADERS=*
-
-    LOG_LEVEL=INFO
-    LOG_FORMAT=json 
-    '''      
-                return {
-                    'main.py': main_py,
-                    'requirements.txt': requirements_txt,
-                    'Dockerfile': dockerfile,
-                    '.env.example': env_example
-                }
-
-            except Exception as e:
-                return {"error": f"Error generating FastAPI code: {str(e)}"}
+        except Exception as e:
+            return {"error": f"Error generating FastAPI code: {str(e)}"}
 
     def validate_bot_config(self, bot_config: Dict) -> tuple[bool, str]:
         if not bot_config.get('name', '').strip():
