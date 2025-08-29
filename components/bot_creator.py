@@ -1621,7 +1621,6 @@ print(response.json())
 
     
 
-    
         def generate_fastapi_code(self, bot_config: Dict) -> Dict[str, str]:
             try:
                 bot_name = bot_config.get('name', 'AI Assistant')
@@ -2390,7 +2389,6 @@ print(response.json())
     LOG_LEVEL=INFO
     LOG_FORMAT=json
     '''
-
                 return {
                     'main.py': main_py,
                     'requirements.txt': requirements_txt,
@@ -2400,7 +2398,6 @@ print(response.json())
 
             except Exception as e:
                 return {"error": f"Error generating FastAPI code: {str(e)}"}
-            
 
     def validate_bot_config(self, bot_config: Dict) -> tuple[bool, str]:
         if not bot_config.get('name', '').strip():
