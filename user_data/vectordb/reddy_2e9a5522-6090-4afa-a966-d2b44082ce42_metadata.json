@@ -1,9 +1,0 @@
-{
-  "collection_name": "bot_2e9a5522_6090_4afa_a966_d2b44082ce42_docs",
-  "persist_directory": "user_data\\vectordb\\reddy\\2e9a5522-6090-4afa-a966-d2b44082ce42",
-  "total_documents": 755,
-  "embedding_model": "BAAI/bge-small-en-v1.5",
-  "user_id": "reddy",
-  "bot_id": "2e9a5522-6090-4afa-a966-d2b44082ce42",
-  "saved_at": "2025-08-26T12:07:59.400684"
-}

@@ -1,9 +1,0 @@
-{
-  "collection_name": "bot_346690fa_c6a1_486d_9d80_a8b262b2d24d_1756091190_docs",
-  "persist_directory": "user_data\\vectordb\\reddy\\346690fa-c6a1-486d-9d80-a8b262b2d24d_1756091190",
-  "total_documents": 0,
-  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
-  "user_id": "reddy",
-  "bot_id": "346690fa-c6a1-486d-9d80-a8b262b2d24d_1756091190",
-  "saved_at": "2025-08-25T08:36:30.358191"
-}

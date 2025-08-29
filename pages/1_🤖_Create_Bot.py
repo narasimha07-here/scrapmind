@@ -101,7 +101,7 @@ def main():
             st.switch_page("app.py")
         return
 
-    if not st.secrets.get("OPENROUTER_API_KEY", ""):
+    if not st.session_state.get('user_config', {}).get('openrouter_api_key'):
         st.warning("⚠️ OpenRouter API key not configured")
         if st.button("Go to Settings"):
             st.switch_page("pages/3_⚙️_Settings.py")
@@ -164,4 +164,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

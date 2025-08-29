@@ -448,7 +448,7 @@ def show_openrouter_config():
         col1, col2 = st.columns([3, 1])
 
         with col1:
-            current_key = st.secrets.get("OPENROUTER_API_KEY", "")
+            current_key = st.session_state.user_config.get('openrouter_api_key', '')
             masked_key = ('*' * (len(current_key) - 8) + current_key[-8:]
                          if len(current_key) > 8 else current_key)
 
@@ -470,7 +470,7 @@ def show_openrouter_config():
 
         if new_openrouter_key and new_openrouter_key != masked_key:
             if st.button("💾 Save OpenRouter Key", key="save_openrouter", type="primary"):
-                st.secrets.get("OPENROUTER_API_KEY", "") == new_openrouter_key
+                st.session_state.user_config['openrouter_api_key'] = new_openrouter_key
                 if save_user_config():
                     with st.spinner("🔄 Loading available models..."):
                         refresh_available_models()
@@ -565,7 +565,7 @@ def refresh_available_models():
         st.error("OpenRouterClient not available")
         return
 
-    api_key = st.secrets.get("OPENROUTER_API_KEY", "")
+    api_key = st.session_state.user_config.get('openrouter_api_key')
 
     if api_key:
         try:
@@ -1202,4 +1202,3 @@ def confirm_delete_all_data():
 
 if __name__ == "__main__":
     main()
-

@@ -1,7 +1,3 @@
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-
 import streamlit as st
 import json
 import uuid
@@ -63,7 +59,7 @@ class BotCreator:
         if OPENROUTER_AVAILABLE and st.session_state.get('user_config', {}).get('openrouter_api_key'):
             try:
                 self.openrouter_client = OpenRouterClient(
-                    st.secrets.get("OPENROUTER_API_KEY", "")
+                    st.session_state.user_config['openrouter_api_key']
                 )
             except Exception as e:
                 st.error(f"Error initializing OpenRouter client: {str(e)}")
