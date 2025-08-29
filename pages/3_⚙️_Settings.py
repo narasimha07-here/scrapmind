@@ -230,7 +230,7 @@ def render_sidebar():
 def show_config_status_sidebar():
     st.markdown("### 📊 Configuration Status")
 
-    openrouter_status = "✅ Connected" if st.secrets.get("OPENROUTER_API_KEY", "") else "❌ Not Set"
+    openrouter_status = "✅ Connected" if st.session_state.user_config.get('openrouter_api_key') else "❌ Not Set"
     openai_status = "✅ Connected" if st.session_state.user_config.get('openai_api_key') else "⚠️ Optional"
 
     st.markdown(f"""
@@ -330,7 +330,7 @@ def show_api_status_overview():
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        openrouter_key = st.secrets.get("OPENROUTER_API_KEY", "")
+        openrouter_key = st.session_state.user_config.get('openrouter_api_key', '')
         if openrouter_key:
             st.markdown('<div class="status-good">✅ OpenRouter Connected</div>', unsafe_allow_html=True)
             st.caption(f"Key: ...{openrouter_key[-8:] if len(openrouter_key) > 8 else openrouter_key}")
@@ -470,7 +470,7 @@ def show_openrouter_config():
 
         if new_openrouter_key and new_openrouter_key != masked_key:
             if st.button("💾 Save OpenRouter Key", key="save_openrouter", type="primary"):
-                st.secrets.get("OPENROUTER_API_KEY") == new_openrouter_key
+                st.secrets.get("OPENROUTER_API_KEY", "") == new_openrouter_key
                 if save_user_config():
                     with st.spinner("🔄 Loading available models..."):
                         refresh_available_models()
