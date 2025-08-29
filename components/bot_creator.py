@@ -1676,8 +1676,8 @@ except ImportError:
     REQUESTS_AVAILABLE = False
     print("Warning: requests not available - some features may not work")
 
-{"# Knowledge base imports" if kb_enabled else ""}
-{f'''try:
+{{"# Knowledge base imports" if kb_enabled else ""}}
+{(f'''try:
     from sentence_transformers import SentenceTransformer
     from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
     from langchain_community.vectorstores import Chroma
@@ -1686,16 +1686,17 @@ except ImportError:
     KB_AVAILABLE = True
 except ImportError:
     KB_AVAILABLE = False
-    print("Warning: Knowledge base dependencies not available")''' if kb_enabled else "KB_AVAILABLE = False"}
+    print("Warning: Knowledge base dependencies not available")''') if kb_enabled else "KB_AVAILABLE = False"
+}
 
 {"# Voice processing imports" if voice_enabled else ""}
-{f'''try:
+{(f'''try:
     import base64
     import io
     VOICE_AVAILABLE = True
 except ImportError:
     VOICE_AVAILABLE = False
-    print("Warning: Voice processing dependencies not available")''' if voice_enabled else "VOICE_AVAILABLE = False"}
+    print("Warning: Voice processing dependencies not available")''') if voice_enabled else "VOICE_AVAILABLE = False"}
 
 logging.basicConfig(
     level=logging.INFO,
