@@ -75,7 +75,6 @@ def initialize_default_session_state():
 
 def get_default_user_config():
     return {
-        'openrouter_api_key': '',
         'openai_api_key': '', 
         'default_model': 'meta-llama/llama-3.2-3b-instruct:free',
         'default_embedding': 'sentence-transformers/all-MiniLM-L6-v2',

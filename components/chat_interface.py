@@ -330,13 +330,20 @@ class ChatInterface:
             self.save_user_data(force_save=True)
 
     def initialize_clients(self, bot_config: Dict):
-        user_config = bot_config.get('user_config', st.session_state.get('user_config', {}))
         
-        if OPENROUTER_AVAILABLE and user_config.get('openrouter_api_key'):
-            try:
-                self.openrouter_client = OpenRouterClient(user_config['openrouter_api_key'])
-            except Exception as e:
-                st.error(f"Error initializing OpenRouter client: {str(e)}")
+        if OPENROUTER_AVAILABLE:
+            openrouter_api_key = st.secrets.get("OPENROUTER_API_KEY")
+            if openrouter_api_key:
+                try:
+                    self.openrouter_client = OpenRouterClient(openrouter_api_key)
+                except Exception as e:
+                    st.error(f"Error initializing OpenRouter client: {str(e)}")
+                    self.openrouter_client = None
+            else:
+                st.warning("OpenRouter API Key not found in Streamlit Secrets. Chat functionality may be limited.")
+                self.openrouter_client = None
+        else:
+            self.openrouter_client = None # If OpenRouter is not available
 
         if bot_config.get('knowledge_base', {}).get('enabled'):
             knowledge_processor = bot_config.get('_knowledge_processor')

@@ -174,7 +174,6 @@ class DataManager:
         return {
             'user_id': user_id,
             'username': 'User',
-            'openrouter_api_key': '',
             'openai_api_key': '',
             'default_model': 'meta-llama/llama-3.2-3b-instruct:free',
             'default_embedding': 'sentence-transformers/all-MiniLM-L6-v2',

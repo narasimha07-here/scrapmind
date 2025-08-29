@@ -60,13 +60,18 @@ class BotCreator:
             st.session_state.data_manager = DataManager()
         self.data_manager = st.session_state.get('data_manager')
         
-        if OPENROUTER_AVAILABLE and st.session_state.get('user_config', {}).get('openrouter_api_key'):
-            try:
-                self.openrouter_client = OpenRouterClient(
-                    st.session_state.user_config['openrouter_api_key']
-                )
-            except Exception as e:
-                st.error(f"Error initializing OpenRouter client: {str(e)}")
+        if OPENROUTER_AVAILABLE:
+            openrouter_api_key = st.secrets.get("OPENROUTER_API_KEY")
+            if openrouter_api_key:
+                try:
+                    self.openrouter_client = OpenRouterClient(openrouter_api_key)
+                except Exception as e:
+                    st.error(f"Error initializing OpenRouter client: {str(e)}")
+            else:
+                st.warning("OpenRouter API Key not found in Streamlit Secrets. Please add it to proceed.")
+                self.openrouter_client = None # Ensure client is None if key is missing
+        else:
+            self.openrouter_client = None # If OpenRouter is not available
         
         if VOICE_CONFIG_AVAILABLE:
             try:
@@ -97,7 +102,6 @@ class BotCreator:
     def initialize_session_state(self):
         if 'user_config' not in st.session_state:
             st.session_state.user_config = {
-                'openrouter_api_key': '',
                 'openai_api_key': '',
                 'default_model': 'meta-llama/llama-3.2-3b-instruct:free',
                 'default_embedding': 'sentence-transformers/all-MiniLM-L6-v2',
