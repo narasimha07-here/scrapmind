@@ -817,7 +817,7 @@ class VoiceConfig:
                 return audio_data, "audio/mp3" if audio_data else None
             
             elif provider == 'murf': # No need for REQUESTS_AVAILABLE check here, _generate_murf_tts_audio will handle it
-                audio_data = await self._generate_murf_tts_audio(voice_config, text)
+                audio_data = await self._generate_murf_tts_audio(voice_config, text) # AWAIT ADDED HERE
                 return audio_data, "audio/wav" if audio_data else None # Murf WebSocket outputs WAV
             
             else:
@@ -1070,3 +1070,4 @@ def get_voice_provider_info(provider: str) -> Dict:
     }
     
     return provider_info.get(provider, {})
+
