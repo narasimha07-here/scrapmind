@@ -1621,7 +1621,7 @@ print(response.json())
 
     
 
-        def generate_fastapi_code(self, bot_config: Dict) -> Dict[str, str]:
+    def generate_fastapi_code(self, bot_config: Dict) -> Dict[str, str]:
             try:
                 bot_name = bot_config.get('name', 'AI Assistant')
                 bot_description = bot_config.get('description', 'AI Assistant with FastAPI')
