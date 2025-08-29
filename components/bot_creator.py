@@ -1677,7 +1677,7 @@ print(response.json())
         print("Warning: requests not available - some features may not work")
 
     {"# Knowledge base imports" if kb_enabled else ""}
-    {(f'''try:
+    {f'''try:
         from sentence_transformers import SentenceTransformer
         from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
         from langchain_community.vectorstores import Chroma
@@ -1686,7 +1686,7 @@ print(response.json())
         KB_AVAILABLE = True
     except ImportError:
         KB_AVAILABLE = False
-        print("Warning: Knowledge base dependencies not available")''') if kb_enabled else "KB_AVAILABLE = False"}
+        print("Warning: Knowledge base dependencies not available")''' if kb_enabled else "KB_AVAILABLE = False"}
 
     {"# Voice processing imports" if voice_enabled else ""}
     {f'''try:
