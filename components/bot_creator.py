@@ -1642,690 +1642,691 @@ print(response.json())
             custom_instructions = adv_config.get('custom_instructions', '')
             
             main_py = f'''"""
-{bot_name} - FastAPI Implementation
-Generated automatically by AI Chatbot Creator
+    {bot_name} - FastAPI Implementation
+    Generated automatically by AI Chatbot Creator
 
-This is a complete FastAPI application for your AI chatbot with:
-- Chat endpoints with streaming support
-- Voice response integration (if enabled)
-- Response mode: {response_mode.upper()}
-- Knowledge base RAG system (if enabled)
-- Error handling and logging
-- API documentation
-"""
+    This is a complete FastAPI application for your AI chatbot with:
+    - Chat endpoints with streaming support
+    - Voice response integration (if enabled)
+    - Response mode: {response_mode.upper()}
+    - Knowledge base RAG system (if enabled)
+    - Error handling and logging
+    - API documentation
+    """
 
-import os
-import json
-import uuid
-import asyncio
-import logging
-from datetime import datetime
-from typing import Dict, List, Optional, AsyncGenerator, Any
-from contextlib import asynccontextmanager
+    import os
+    import json
+    import uuid
+    import asyncio
+    import logging
+    from datetime import datetime
+    from typing import Dict, List, Optional, AsyncGenerator, Any
+    from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
-from pydantic import BaseModel, Field
-import uvicorn
+    from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.responses import StreamingResponse, JSONResponse
+    from pydantic import BaseModel, Field
+    import uvicorn
 
-try:
-    import requests
-    REQUESTS_AVAILABLE = True
-except ImportError:
-    REQUESTS_AVAILABLE = False
-    print("Warning: requests not available - some features may not work")
+    try:
+        import requests
+        REQUESTS_AVAILABLE = True
+    except ImportError:
+        REQUESTS_AVAILABLE = False
+        print("Warning: requests not available - some features may not work")
 
-{"# Knowledge base imports" if kb_enabled else ""}
-{f'''try:
-    from sentence_transformers import SentenceTransformer
-    from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
-    from langchain_community.vectorstores import Chroma
-    from langchain.schema import Document
-    import chromadb
-    KB_AVAILABLE = True
-except ImportError:
-    KB_AVAILABLE = False
-    print("Warning: Knowledge base dependencies not available")''' if kb_enabled else "KB_AVAILABLE = False"}
+    {"# Knowledge base imports" if kb_enabled else ""}
+    {f'''try:
+        from sentence_transformers import SentenceTransformer
+        from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
+        from langchain_community.vectorstores import Chroma
+        from langchain.schema import Document
+        import chromadb
+        KB_AVAILABLE = True
+    except ImportError:
+        KB_AVAILABLE = False
+        print("Warning: Knowledge base dependencies not available")''' if kb_enabled else "KB_AVAILABLE = False"}
 
-{"# Voice processing imports" if voice_enabled else ""}
-{f'''try:
-    import base64
-    import io
-    VOICE_AVAILABLE = True
-except ImportError:
-    VOICE_AVAILABLE = False
-    print("Warning: Voice processing dependencies not available")''' if voice_enabled else "VOICE_AVAILABLE = False"}
+    {"# Voice processing imports" if voice_enabled else ""}
+    {f'''try:
+        import base64
+        import io
+        VOICE_AVAILABLE = True
+    except ImportError:
+        VOICE_AVAILABLE = False
+        print("Warning: Voice processing dependencies not available")''' if voice_enabled else "VOICE_AVAILABLE = False"}
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    logger = logging.getLogger(__name__)
 
-openrouter_client = None
-knowledge_base = None
-voice_synthesizer = None
+    openrouter_client = None
+    knowledge_base = None
+    voice_synthesizer = None
 
-class ChatRequest(BaseModel):
-    message: str = Field(..., description="The user's message")
-    conversation_id: Optional[str] = Field(None, description="Unique conversation identifier")
-    stream: bool = Field(False, description="Whether to stream the response")
-    include_voice: bool = Field({str(voice_enabled and response_mode in ['voice', 'both']).lower()}, description="Whether to include voice response")
-    context: Optional[List[Dict]] = Field(None, description="Previous conversation context")
+    class ChatRequest(BaseModel):
+        message: str = Field(..., description="The user's message")
+        conversation_id: Optional[str] = Field(None, description="Unique conversation identifier")
+        stream: bool = Field(False, description="Whether to stream the response")
+        include_voice: bool = Field({str(voice_enabled and response_mode in ['voice', 'both']).lower()}, description="Whether to include voice response")
+        context: Optional[List[Dict]] = Field(None, description="Previous conversation context")
 
-class ChatResponse(BaseModel):
-    response: str = Field(..., description="The bot's response")
-    conversation_id: str = Field(..., description="Conversation identifier")
-    timestamp: str = Field(..., description="Response timestamp")
-    model: str = Field(..., description="Model used for response")
-    response_mode: str = Field(..., description="Response mode (voice, text, both)")
-    voice_data: Optional[str] = Field(None, description="Base64 encoded voice data")
-    voice_format: Optional[str] = Field(None, description="Voice audio format")
-    metadata: Optional[Dict] = Field(None, description="Additional response metadata")
+    class ChatResponse(BaseModel):
+        response: str = Field(..., description="The bot's response")
+        conversation_id: str = Field(..., description="Conversation identifier")
+        timestamp: str = Field(..., description="Response timestamp")
+        model: str = Field(..., description="Model used for response")
+        response_mode: str = Field(..., description="Response mode (voice, text, both)")
+        voice_data: Optional[str] = Field(None, description="Base64 encoded voice data")
+        voice_format: Optional[str] = Field(None, description="Voice audio format")
+        metadata: Optional[Dict] = Field(None, description="Additional response metadata")
 
-class HealthResponse(BaseModel):
-    status: str = Field(..., description="Service status")
-    timestamp: str = Field(..., description="Health check timestamp")
-    version: str = Field(..., description="API version")
-    services: Dict[str, str] = Field(..., description="Service component statuses")
+    class HealthResponse(BaseModel):
+        status: str = Field(..., description="Service status")
+        timestamp: str = Field(..., description="Health check timestamp")
+        version: str = Field(..., description="API version")
+        services: Dict[str, str] = Field(..., description="Service component statuses")
 
-{f'''
-class OpenRouterClient:
-    """OpenRouter API client for LLM interactions"""
-    
-    def __init__(self, api_key: str):
-        self.api_key = api_key
-        self.base_url = "https://openrouter.ai/api/v1"
-        self.headers = {{
-            "Authorization": f"Bearer {{api_key}}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "http://localhost:8000",
-            "X-Title": "{bot_name} API"
-        }}
-    
-    async def chat_completion(self, messages: List[Dict], model: str = "{model}", **kwargs) -> Dict:
-        """Send chat completion request to OpenRouter"""
-        try:
-            payload = {{
-                "model": model,
-                "messages": messages,
-                "temperature": {temperature},
-                "max_tokens": {max_tokens},
-                **kwargs
+    class OpenRouterClient:
+        """OpenRouter API client for LLM interactions"""
+        
+        def __init__(self, api_key: str):
+            self.api_key = api_key
+            self.base_url = "https://openrouter.ai/api/v1"
+            self.headers = {{
+                "Authorization": f"Bearer {{api_key}}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "http://localhost:8000",
+                "X-Title": "{bot_name} API"
             }}
-            
-            if not REQUESTS_AVAILABLE:
-                raise Exception("Requests library not available")
-            
-            response = requests.post(
-                f"{{self.base_url}}/chat/completions",
-                headers=self.headers,
-                json=payload,
-                timeout=30
-            )
-            
-            response.raise_for_status()
-            result = response.json()
-            
-            if "choices" in result and len(result["choices"]) > 0:
-                content = result["choices"][0]["message"]["content"]
-                return {{"success": True, "content": content, "model": model}}
-            else:
-                return {{"success": False, "error": "No response generated"}}
+        
+        async def chat_completion(self, messages: List[Dict], model: str = "{model}", **kwargs) -> Dict:
+            """Send chat completion request to OpenRouter"""
+            try:
+                payload = {{
+                    "model": model,
+                    "messages": messages,
+                    "temperature": {temperature},
+                    "max_tokens": {max_tokens},
+                    **kwargs
+                }}
                 
-        except Exception as e:
-            logger.error(f"OpenRouter API error: {{str(e)}}")
-            return {{"success": False, "error": str(e)}}
-    
-    async def chat_completion_stream(self, messages: List[Dict], model: str = "{model}", **kwargs) -> AsyncGenerator[str, None]:
-        """Stream chat completion from OpenRouter"""
-        try:
-            payload = {{
-                "model": model,
-                "messages": messages,
-                "temperature": {temperature},
-                "max_tokens": {max_tokens},
-                "stream": True,
-                **kwargs
-            }}
-            
-            if not REQUESTS_AVAILABLE:
-                yield "Error: Requests library not available"
-                return
-            
-            response = requests.post(
-                f"{{self.base_url}}/chat/completions",
-                headers=self.headers,
-                json=payload,
-                stream=True,
-                timeout=30
-            )
-            
-            response.raise_for_status()
-            
-            for line in response.iter_lines():
-                if line:
-                    line_str = line.decode('utf-8')
-                    if line_str.startswith('data: '):
-                        data_str = line_str[6:]
-                        if data_str.strip() == '[DONE]':
-                            break
-                        try:
-                            data = json.loads(data_str)
-                            if 'choices' in data and len(data['choices']) > 0:
-                                delta = data['choices'][0].get('delta', {{}})
-                                content = delta.get('content', '')
-                                if content:
-                                    yield content
-                        except json.JSONDecodeError:
-                            continue
-                            
-        except Exception as e:
-            logger.error(f"Streaming error: {{str(e)}}")
-            yield f"Error: {{str(e)}}"''' if True else ""}
+                if not REQUESTS_AVAILABLE:
+                    raise Exception("Requests library not available")
+                
+                response = requests.post(
+                    f"{{self.base_url}}/chat/completions",
+                    headers=self.headers,
+                    json=payload,
+                    timeout=30
+                )
+                
+                response.raise_for_status()
+                result = response.json()
+                
+                if "choices" in result and len(result["choices"]) > 0:
+                    content = result["choices"][0]["message"]["content"]
+                    return {{"success": True, "content": content, "model": model}}
+                else:
+                    return {{"success": False, "error": "No response generated"}}
+                    
+            except Exception as e:
+                logger.error(f"OpenRouter API error: {{str(e)}}")
+                return {{"success": False, "error": str(e)}}
+        
+        async def chat_completion_stream(self, messages: List[Dict], model: str = "{model}", **kwargs) -> AsyncGenerator[str, None]:
+            """Stream chat completion from OpenRouter"""
+            try:
+                payload = {{
+                    "model": model,
+                    "messages": messages,
+                    "temperature": {temperature},
+                    "max_tokens": {max_tokens},
+                    "stream": True,
+                    **kwargs
+                }}
+                
+                if not REQUESTS_AVAILABLE:
+                    yield "Error: Requests library not available"
+                    return
+                
+                response = requests.post(
+                    f"{{self.base_url}}/chat/completions",
+                    headers=self.headers,
+                    json=payload,
+                    stream=True,
+                    timeout=30
+                )
+                
+                response.raise_for_status()
+                
+                for line in response.iter_lines():
+                    if line:
+                        line_str = line.decode('utf-8')
+                        if line_str.startswith('data: '):
+                            data_str = line_str[6:]
+                            if data_str.strip() == '[DONE]':
+                                break
+                            try:
+                                data = json.loads(data_str)
+                                if 'choices' in data and len(data['choices']) > 0:
+                                    delta = data['choices'][0].get('delta', {{}})
+                                    content = delta.get('content', '')
+                                    if content:
+                                        yield content
+                            except json.JSONDecodeError:
+                                continue
+                                
+            except Exception as e:
+                logger.error(f"Streaming error: {{str(e)}}")
+                yield f"Error: {{str(e)}}"
 
-{f'''
-class KnowledgeBase:
-    """Knowledge base for RAG functionality"""
-    
-    def __init__(self):
-        self.embeddings = None
-        self.vectorstore = None
-        self.text_splitter = None
-        self.initialized = False
-    
-    async def initialize(self):
-        """Initialize knowledge base components"""
-        try:
-            if not KB_AVAILABLE:
-                logger.warning("Knowledge base dependencies not available")
-                return False
-            
-            self.embeddings = SentenceTransformer('{embedding_model}')
-            
-            self.text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size={kb_config.get('chunk_size', 1000)},
-                chunk_overlap={kb_config.get('chunk_overlap', 200)}
-            )
-            
+    {f'''
+    class KnowledgeBase:
+        """Knowledge base for RAG functionality"""
+        
+        def __init__(self):
+            self.embeddings = None
             self.vectorstore = None
-            self.initialized = True
-            logger.info("Knowledge base initialized successfully")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to initialize knowledge base: {{str(e)}}")
-            return False
-    
-    def embed_text(self, text: str) -> List[float]:
-        """Generate embeddings for text"""
-        if not self.embeddings:
-            return []
-        return self.embeddings.encode([text])[0].tolist()
-    
-    async def add_documents(self, documents: List[str]) -> bool:
-        """Add documents to the knowledge base"""
-        try:
-            if not self.initialized:
-                await self.initialize()
-            
-            if not documents:
-                return True
-            
-            doc_chunks = []
-            for doc in documents:
-                chunks = self.text_splitter.split_text(doc)
-                doc_chunks.extend([Document(page_content=chunk) for chunk in chunks])
-            
-            if self.vectorstore is None:
-                texts = [doc.page_content for doc in doc_chunks]
-                embeddings_list = [self.embed_text(text) for text in texts]
+            self.text_splitter = None
+            self.initialized = False
+        
+        async def initialize(self):
+            """Initialize knowledge base components"""
+            try:
+                if not KB_AVAILABLE:
+                    logger.warning("Knowledge base dependencies not available")
+                    return False
                 
-                self.vectorstore = Chroma.from_texts(
-                    texts=texts,
-                    embedding=self.embeddings,
-                    persist_directory="./vectordb"
+                self.embeddings = SentenceTransformer('{embedding_model}')
+                
+                self.text_splitter = RecursiveCharacterTextSplitter(
+                    chunk_size={kb_config.get('chunk_size', 1000)},
+                    chunk_overlap={kb_config.get('chunk_overlap', 200)}
+                )
+                
+                self.vectorstore = None
+                self.initialized = True
+                logger.info("Knowledge base initialized successfully")
+                return True
+                
+            except Exception as e:
+                logger.error(f"Failed to initialize knowledge base: {{str(e)}}")
+                return False
+        
+        def embed_text(self, text: str) -> List[float]:
+            """Generate embeddings for text"""
+            if not self.embeddings:
+                return []
+            return self.embeddings.encode([text])[0].tolist()
+        
+        async def add_documents(self, documents: List[str]) -> bool:
+            """Add documents to the knowledge base"""
+            try:
+                if not self.initialized:
+                    await self.initialize()
+                
+                if not documents:
+                    return True
+                
+                doc_chunks = []
+                for doc in documents:
+                    chunks = self.text_splitter.split_text(doc)
+                    doc_chunks.extend([Document(page_content=chunk) for chunk in chunks])
+                
+                if self.vectorstore is None:
+                    texts = [doc.page_content for doc in doc_chunks]
+                    embeddings_list = [self.embed_text(text) for text in texts]
+                    
+                    self.vectorstore = Chroma.from_texts(
+                        texts=texts,
+                        embedding=self.embeddings,
+                        persist_directory="./vectordb"
+                    )
+                else:
+                    texts = [doc.page_content for doc in doc_chunks]
+                    self.vectorstore.add_texts(texts)
+                
+                logger.info(f"Added {{len(doc_chunks)}} document chunks to knowledge base")
+                return True
+                
+            except Exception as e:
+                logger.error(f"Failed to add documents: {{str(e)}}")
+                return False
+        
+        async def search(self, query: str, k: int = {kb_config.get('max_results', 4)}) -> List[str]:
+            """Search for relevant documents"""
+            try:
+                if not self.vectorstore:
+                    return []
+                
+                results = self.vectorstore.similarity_search(query, k=k)
+                return [doc.page_content for doc in results]
+                
+            except Exception as e:
+                logger.error(f"Search error: {{str(e)}}")
+                return []''' if kb_enabled else ""}
+
+    {f'''
+    class VoiceSynthesizer:
+        """Voice synthesis for text-to-speech"""
+        
+        def __init__(self):
+            self.provider = "{voice_provider}"
+            self.api_key = os.getenv("{voice_provider.upper()}_API_KEY", "")
+            self.voice_id = "{voice_config.get('voice', '')}"
+            self.language = "{voice_config.get('language', 'en')}"
+            self.speed = {voice_config.get('speed', 1.0)}
+            self.volume = {voice_config.get('volume', 0.8)}
+        
+        async def synthesize(self, text: str) -> tuple[Optional[bytes], Optional[str]]:
+            """Convert text to speech"""
+            try:
+                if not VOICE_AVAILABLE or not self.api_key:
+                    return None, None
+                
+                if self.provider == "murf":
+                    return await self._synthesize_murf(text)
+                elif self.provider == "openai":
+                    return await self._synthesize_openai(text)
+                elif self.provider == "elevenlabs":
+                    return await self._synthesize_elevenlabs(text)
+                else:
+                    logger.warning(f"Unsupported voice provider: {{self.provider}}")
+                    return None, None
+                    
+            except Exception as e:
+                logger.error(f"Voice synthesis error: {{str(e)}}")
+                return None, None
+        
+        async def _synthesize_murf(self, text: str) -> tuple[Optional[bytes], Optional[str]]:
+            """Synthesize speech using Murf AI"""
+            try:
+                if not REQUESTS_AVAILABLE:
+                    return None, None
+                
+                headers = {{
+                    "accept": "application/json",
+                    "content-type": "application/json",
+                    "api-key": self.api_key
+                }}
+                
+                payload = {{
+                    "text": text,
+                    "voice_id": self.voice_id,
+                    "speed": max(0.5, min(1.5, self.speed))
+                }}
+                
+                response = requests.post(
+                    "https://api.murf.ai/v1/speech/generate",
+                    headers=headers,
+                    json=payload,
+                    timeout=30
+                )
+                
+                response.raise_for_status()
+                result = response.json()
+                
+                if "audioFile" in result:
+                    audio_url = result["audioFile"].strip("[]\\'\"")
+                    audio_response = requests.get(audio_url, timeout=30)
+                    audio_response.raise_for_status()
+                    return audio_response.content, "audio/wav"
+                
+                return None, None
+                
+            except Exception as e:
+                logger.error(f"Murf synthesis error: {{str(e)}}")
+                return None, None
+        
+        async def _synthesize_openai(self, text: str) -> tuple[Optional[bytes], Optional[str]]:
+            """Synthesize speech using OpenAI TTS"""
+            return None, None
+        
+        async def _synthesize_elevenlabs(self, text: str) -> tuple[Optional[bytes], Optional[str]]:
+            """Synthesize speech using ElevenLabs"""
+            return None, None''' if voice_enabled else ""}
+
+    async def initialize_services():
+        """Initialize all required services"""
+        global openrouter_client, knowledge_base, voice_synthesizer
+        
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if api_key:
+            openrouter_client = OpenRouterClient(api_key)
+            logger.info("OpenRouter client initialized")
+        else:
+            logger.warning("OPENROUTER_API_KEY not found - chat functionality will be limited")
+        
+    {f'''    if KB_AVAILABLE:
+            knowledge_base = KnowledgeBase()
+            await knowledge_base.initialize()
+    ''' if kb_enabled else ""}
+
+    {f'''    if VOICE_AVAILABLE:
+            voice_synthesizer = VoiceSynthesizer()
+            logger.info("Voice synthesizer initialized")
+    ''' if voice_enabled else ""}
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        """Application lifespan manager"""
+        logger.info("Starting {bot_name} API...")
+        await initialize_services()
+        yield
+        logger.info("Shutting down {bot_name} API...")
+
+    app = FastAPI(
+        title="{bot_name} API",
+        description="""{bot_description}
+
+    This API provides chat functionality with the following features:
+    - Response Mode: {response_mode.upper()}
+    {"- Voice response generation" if voice_enabled else ""}
+    {"- Knowledge base integration with RAG" if kb_enabled else ""}
+    - Streaming responses
+    - Conversation context management
+    - Health monitoring
+
+    Response Modes:
+    - VOICE: Audio responses only
+    - TEXT: Text responses only
+    - BOTH: Both audio and text responses
+    """,
+        version="1.0.0",
+        lifespan=lifespan
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE"],
+        allow_headers=["*"],
+    )
+
+    @app.get("/health", response_model=HealthResponse)
+    async def health_check():
+        """Health check endpoint"""
+        services = {{
+            "openrouter": "available" if openrouter_client else "unavailable",
+            {"knowledge_base": "available" if knowledge_base and knowledge_base.initialized else "unavailable," if kb_enabled else ""}
+            {"voice_synthesizer": "available" if voice_synthesizer else "unavailable," if voice_enabled else ""}
+        }}
+        
+        # Remove trailing commas from services dict
+        services = {{k: v.rstrip(',') if isinstance(v, str) and v.endswith(',') else v for k, v in services.items()}}
+        
+        return HealthResponse(
+            status="healthy",
+            timestamp=datetime.now().isoformat(),
+            version="1.0.0",
+            services=services
+        )
+
+    @app.post("/chat", response_model=ChatResponse)
+    async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks):
+        """Main chat endpoint with response mode support"""
+        try:
+            conversation_id = request.conversation_id or str(uuid.uuid4())
+            
+            if not openrouter_client:
+                raise HTTPException(status_code=503, detail="OpenRouter client not available")
+            
+            messages = []
+            system_msg = {system_message or custom_instructions or f"You are {bot_name}, a helpful AI assistant."}
+            if system_msg.strip():
+                messages.append({{"role": "system", "content": system_msg}})
+            
+            if request.context:
+                messages.extend(request.context[-{context_window}:])
+            
+    {f'''        relevant_docs = []
+            if knowledge_base and knowledge_base.initialized:
+                relevant_docs = await knowledge_base.search(request.message)
+                if relevant_docs:
+                    context = "\\n".join(relevant_docs)
+                    enhanced_message = f"Context from knowledge base:\\n{{context}}\\n\\nUser question: {{request.message}}"
+                    messages.append({{"role": "user", "content": enhanced_message}})
+                else:
+                    messages.append({{"role": "user", "content": request.message}})
+            else:
+                messages.append({{"role": "user", "content": request.message}})''' if kb_enabled else '''
+            messages.append({"role": "user", "content": request.message})'''}
+            
+            if request.stream:
+                async def generate_stream():
+                    full_response = ""
+                    async for chunk in openrouter_client.chat_completion_stream(messages):
+                        full_response += chunk
+                        yield f"data: {{json.dumps({{'chunk': chunk}})}}\\n\\n"
+                    
+                    final_data = {{
+                        "response": full_response,
+                        "conversation_id": conversation_id,
+                        "timestamp": datetime.now().isoformat(),
+                        "model": "{model}",
+                        "response_mode": "{response_mode}",
+                        "done": True
+                    }}
+                    yield f"data: {{json.dumps(final_data)}}\\n\\n"
+                
+                return StreamingResponse(
+                    generate_stream(),
+                    media_type="text/plain",
+                    headers={{"Cache-Control": "no-cache", "Connection": "keep-alive"}}
                 )
             else:
-                texts = [doc.page_content for doc in doc_chunks]
-                self.vectorstore.add_texts(texts)
-            
-            logger.info(f"Added {{len(doc_chunks)}} document chunks to knowledge base")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to add documents: {{str(e)}}")
-            return False
-    
-    async def search(self, query: str, k: int = {kb_config.get('max_results', 4)}) -> List[str]:
-        """Search for relevant documents"""
-        try:
-            if not self.vectorstore:
-                return []
-            
-            results = self.vectorstore.similarity_search(query, k=k)
-            return [doc.page_content for doc in results]
-            
-        except Exception as e:
-            logger.error(f"Search error: {{str(e)}}")
-            return []''' if kb_enabled else ""}
-
-{f'''
-class VoiceSynthesizer:
-    """Voice synthesis for text-to-speech"""
-    
-    def __init__(self):
-        self.provider = "{voice_provider}"
-        self.api_key = os.getenv("{voice_provider.upper()}_API_KEY", "")
-        self.voice_id = "{voice_config.get('voice', '')}"
-        self.language = "{voice_config.get('language', 'en')}"
-        self.speed = {voice_config.get('speed', 1.0)}
-        self.volume = {voice_config.get('volume', 0.8)}
-    
-    async def synthesize(self, text: str) -> tuple[Optional[bytes], Optional[str]]:
-        """Convert text to speech"""
-        try:
-            if not VOICE_AVAILABLE or not self.api_key:
-                return None, None
-            
-            if self.provider == "murf":
-                return await self._synthesize_murf(text)
-            elif self.provider == "openai":
-                return await self._synthesize_openai(text)
-            elif self.provider == "elevenlabs":
-                return await self._synthesize_elevenlabs(text)
-            else:
-                logger.warning(f"Unsupported voice provider: {{self.provider}}")
-                return None, None
+                result = await openrouter_client.chat_completion(messages)
                 
-        except Exception as e:
-            logger.error(f"Voice synthesis error: {{str(e)}}")
-            return None, None
-    
-    async def _synthesize_murf(self, text: str) -> tuple[Optional[bytes], Optional[str]]:
-        """Synthesize speech using Murf AI"""
-        try:
-            if not REQUESTS_AVAILABLE:
-                return None, None
-            
-            headers = {{
-                "accept": "application/json",
-                "content-type": "application/json",
-                "api-key": self.api_key
-            }}
-            
-            payload = {{
-                "text": text,
-                "voice_id": self.voice_id,
-                "speed": max(0.5, min(1.5, self.speed))
-            }}
-            
-            response = requests.post(
-                "https://api.murf.ai/v1/speech/generate",
-                headers=headers,
-                json=payload,
-                timeout=30
-            )
-            
-            response.raise_for_status()
-            result = response.json()
-            
-            if "audioFile" in result:
-                audio_url = result["audioFile"].strip("[]\\'\"")
-                audio_response = requests.get(audio_url, timeout=30)
-                audio_response.raise_for_status()
-                return audio_response.content, "audio/wav"
-            
-            return None, None
-            
-        except Exception as e:
-            logger.error(f"Murf synthesis error: {{str(e)}}")
-            return None, None
-    
-    async def _synthesize_openai(self, text: str) -> tuple[Optional[bytes], Optional[str]]:
-        """Synthesize speech using OpenAI TTS"""
-        return None, None
-    
-    async def _synthesize_elevenlabs(self, text: str) -> tuple[Optional[bytes], Optional[str]]:
-        """Synthesize speech using ElevenLabs"""
-        return None, None''' if voice_enabled else ""}
-
-async def initialize_services():
-    """Initialize all required services"""
-    global openrouter_client, knowledge_base, voice_synthesizer
-    
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    if api_key:
-        openrouter_client = OpenRouterClient(api_key)
-        logger.info("OpenRouter client initialized")
-    else:
-        logger.warning("OPENROUTER_API_KEY not found - chat functionality will be limited")
-    
-{f'''    if KB_AVAILABLE:
-        knowledge_base = KnowledgeBase()
-        await knowledge_base.initialize()
-''' if kb_enabled else ""}
-
-{f'''    if VOICE_AVAILABLE:
-        voice_synthesizer = VoiceSynthesizer()
-        logger.info("Voice synthesizer initialized")
-''' if voice_enabled else ""}
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan manager"""
-    logger.info("Starting {bot_name} API...")
-    await initialize_services()
-    yield
-    logger.info("Shutting down {bot_name} API...")
-
-app = FastAPI(
-    title="{bot_name} API",
-    description="""{bot_description}
-
-This API provides chat functionality with the following features:
-- Response Mode: {response_mode.upper()}
-{"- Voice response generation" if voice_enabled else ""}
-{"- Knowledge base integration with RAG" if kb_enabled else ""}
-- Streaming responses
-- Conversation context management
-- Health monitoring
-
-Response Modes:
-- VOICE: Audio responses only
-- TEXT: Text responses only
-- BOTH: Both audio and text responses
-""",
-    version="1.0.0",
-    lifespan=lifespan
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["*"],
-)
-
-@app.get("/health", response_model=HealthResponse)
-async def health_check():
-    """Health check endpoint"""
-    services = {{
-        "openrouter": "available" if openrouter_client else "unavailable",
-        {"\"knowledge_base\": \"available\" if knowledge_base and knowledge_base.initialized else \"unavailable\"," if kb_enabled else ""}
-        {"\"voice_synthesizer\": \"available\" if voice_synthesizer else \"unavailable\"," if voice_enabled else ""}
-    }}
-    
-    return HealthResponse(
-        status="healthy",
-        timestamp=datetime.now().isoformat(),
-        version="1.0.0",
-        services=services
-    )
-
-@app.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks):
-    """Main chat endpoint with response mode support"""
-    try:
-        conversation_id = request.conversation_id or str(uuid.uuid4())
-        
-        if not openrouter_client:
-            raise HTTPException(status_code=503, detail="OpenRouter client not available")
-        
-        messages = []
-        system_msg = {system_message or custom_instructions or f"You are {bot_name}, a helpful AI assistant."}
-        if system_msg.strip():
-            messages.append({{"role": "system", "content": system_msg}})
-        
-        if request.context:
-            messages.extend(request.context[-{context_window}:])
-        
-{f'''        relevant_docs = []
-        if knowledge_base and knowledge_base.initialized:
-            relevant_docs = await knowledge_base.search(request.message)
-            if relevant_docs:
-                context = "\\n".join(relevant_docs)
-                enhanced_message = f"Context from knowledge base:\\n{{context}}\\n\\nUser question: {{request.message}}"
-                messages.append({{"role": "user", "content": enhanced_message}})
-            else:
-                messages.append({{"role": "user", "content": request.message}})
-        else:
-            messages.append({{"role": "user", "content": request.message}})''' if kb_enabled else '''
-        messages.append({"role": "user", "content": request.message})'''}
-        
-        if request.stream:
-            async def generate_stream():
-                full_response = ""
-                async for chunk in openrouter_client.chat_completion_stream(messages):
-                    full_response += chunk
-                    yield f"data: {{json.dumps({{'chunk': chunk}})}}\\n\\n"
+                if not result.get("success"):
+                    raise HTTPException(status_code=500, detail=f"AI response error: {{result.get('error')}}")
                 
-                final_data = {{
-                    "response": full_response,
-                    "conversation_id": conversation_id,
-                    "timestamp": datetime.now().isoformat(),
-                    "model": "{model}",
+                response_text = result["content"]
+                
+                voice_data = None
+                voice_format = None
+    {f'''            if "{response_mode}" in ["voice", "both"] and voice_synthesizer:
+                    voice_bytes, voice_fmt = await voice_synthesizer.synthesize(response_text)
+                    if voice_bytes:
+                        voice_data = base64.b64encode(voice_bytes).decode('utf-8')
+                        voice_format = voice_fmt''' if voice_enabled else ""}
+                
+                final_response_text = response_text if "{response_mode}" in ["text", "both"] else ""
+                
+                metadata = {{
+                    {"relevant_docs_count": len(relevant_docs)," if kb_enabled else ""}
+                    "response_length": len(response_text),
+                    "model_used": result.get("model", "{model}"),
                     "response_mode": "{response_mode}",
-                    "done": True
+                    "voice_generated": voice_data is not None
                 }}
-                yield f"data: {{json.dumps(final_data)}}\\n\\n"
+                
+                return ChatResponse(
+                    response=final_response_text,
+                    conversation_id=conversation_id,
+                    timestamp=datetime.now().isoformat(),
+                    model=result.get("model", "{model}"),
+                    response_mode="{response_mode}",
+                    voice_data=voice_data,
+                    voice_format=voice_format,
+                    metadata=metadata
+                )
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Chat endpoint error: {{str(e)}}")
+            raise HTTPException(status_code=500, detail=f"Internal server error: {{str(e)}}")
+
+    {f'''
+    @app.post("/knowledge-base/add")
+    async def add_knowledge(documents: List[str]):
+        """Add documents to the knowledge base"""
+        try:
+            if not knowledge_base:
+                raise HTTPException(status_code=503, detail="Knowledge base not available")
             
-            return StreamingResponse(
-                generate_stream(),
-                media_type="text/plain",
-                headers={{"Cache-Control": "no-cache", "Connection": "keep-alive"}}
-            )
-        else:
-            result = await openrouter_client.chat_completion(messages)
+            success = await knowledge_base.add_documents(documents)
+            if success:
+                return {{"message": f"Successfully added {{len(documents)}} documents"}}
+            else:
+                raise HTTPException(status_code=500, detail="Failed to add documents")
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Add knowledge error: {{str(e)}}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/knowledge-base/search")
+    async def search_knowledge(query: str, limit: int = 4):
+        """Search the knowledge base"""
+        try:
+            if not knowledge_base:
+                raise HTTPException(status_code=503, detail="Knowledge base not available")
             
-            if not result.get("success"):
-                raise HTTPException(status_code=500, detail=f"AI response error: {{result.get('error')}}")
-            
-            response_text = result["content"]
-            
-            voice_data = None
-            voice_format = None
-{f'''            if "{response_mode}" in ["voice", "both"] and voice_synthesizer:
-                voice_bytes, voice_fmt = await voice_synthesizer.synthesize(response_text)
-                if voice_bytes:
-                    voice_data = base64.b64encode(voice_bytes).decode('utf-8')
-                    voice_format = voice_fmt''' if voice_enabled else ""}
-            
-            final_response_text = response_text if "{response_mode}" in ["text", "both"] else ""
-            
-            metadata = {{
-                {"\"relevant_docs_count\": len(relevant_docs)," if kb_enabled else ""}
-                "response_length": len(response_text),
-                "model_used": result.get("model", "{model}"),
-                "response_mode": "{response_mode}",
-                "voice_generated": voice_data is not None
+            results = await knowledge_base.search(query, k=limit)
+            return {{
+                "query": query,
+                "results": results,
+                "count": len(results)
             }}
             
-            return ChatResponse(
-                response=final_response_text,
-                conversation_id=conversation_id,
-                timestamp=datetime.now().isoformat(),
-                model=result.get("model", "{model}"),
-                response_mode="{response_mode}",
-                voice_data=voice_data,
-                voice_format=voice_format,
-                metadata=metadata
-            )
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Chat endpoint error: {{str(e)}}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {{str(e)}}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Search knowledge error: {{str(e)}}")
+            raise HTTPException(status_code=500, detail=str(e))''' if kb_enabled else ""}
 
-{f'''
-@app.post("/knowledge-base/add")
-async def add_knowledge(documents: List[str]):
-    """Add documents to the knowledge base"""
-    try:
-        if not knowledge_base:
-            raise HTTPException(status_code=503, detail="Knowledge base not available")
-        
-        success = await knowledge_base.add_documents(documents)
-        if success:
-            return {{"message": f"Successfully added {{len(documents)}} documents"}}
-        else:
-            raise HTTPException(status_code=500, detail="Failed to add documents")
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Add knowledge error: {{str(e)}}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/knowledge-base/search")
-async def search_knowledge(query: str, limit: int = 4):
-    """Search the knowledge base"""
-    try:
-        if not knowledge_base:
-            raise HTTPException(status_code=503, detail="Knowledge base not available")
-        
-        results = await knowledge_base.search(query, k=limit)
+    @app.get("/config")
+    async def get_config():
+        """Get bot configuration"""
         return {{
-            "query": query,
-            "results": results,
-            "count": len(results)
+            "name": "{bot_name}",
+            "description": "{bot_description}",
+            "model": "{model}",
+            "voice_enabled": {str(voice_enabled).lower()},
+            "response_mode": "{response_mode}",
+            "knowledge_base_enabled": {str(kb_enabled).lower()},
+            "features": {{
+                "streaming": True,
+                "voice_responses": {str(voice_enabled).lower()},
+                "knowledge_base": {str(kb_enabled).lower()},
+                "conversation_context": True,
+                "response_modes": ["{response_mode}"]
+            }}
         }}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Search knowledge error: {{str(e)}}")
-        raise HTTPException(status_code=500, detail=str(e))''' if kb_enabled else ""}
 
-@app.get("/config")
-async def get_config():
-    """Get bot configuration"""
-    return {{
-        "name": "{bot_name}",
-        "description": "{bot_description}",
-        "model": "{model}",
-        "voice_enabled": {str(voice_enabled).lower()},
-        "response_mode": "{response_mode}",
-        "knowledge_base_enabled": {str(kb_enabled).lower()},
-        "features": {{
-            "streaming": True,
-            "voice_responses": {str(voice_enabled).lower()},
-            "knowledge_base": {str(kb_enabled).lower()},
-            "conversation_context": True,
-            "response_modes": ["{response_mode}"]
-        }}
-    }}
-
-if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=int(os.getenv("PORT", 8000)),
-        reload=os.getenv("ENVIRONMENT") == "development"
-    )
-'''
-            
+    if __name__ == "__main__":
+        uvicorn.run(
+            "main:app",
+            host="0.0.0.0",
+            port=int(os.getenv("PORT", 8000)),
+            reload=os.getenv("ENVIRONMENT") == "development"
+        )
+    '''
+                
             requirements_txt = f'''fastapi>=0.104.1
-uvicorn[standard]>=0.24.0
-pydantic>=2.0.0
-python-multipart>=0.0.6
-requests>=2.31.0
-python-dotenv>=1.0.0
-structlog>=23.0.0
-{"sentence-transformers>=4.0.0" if kb_enabled else ""}
-{"langchain>=0.0.350" if kb_enabled else ""}
-{"langchain-community>=0.0.10" if kb_enabled else ""}
-{"chromadb>=0.4.15" if kb_enabled else ""}
-{"numpy>=1.24.0" if kb_enabled else ""}
-{"scikit-learn>=1.3.0" if kb_enabled else ""}
-gunicorn>=21.2.0
-'''
-            
+    uvicorn[standard]>=0.24.0
+    pydantic>=2.0.0
+    python-multipart>=0.0.6
+    requests>=2.31.0
+    python-dotenv>=1.0.0
+    structlog>=23.0.0
+    {"sentence-transformers>=4.0.0" if kb_enabled else ""}
+    {"langchain>=0.0.350" if kb_enabled else ""}
+    {"langchain-community>=0.0.10" if kb_enabled else ""}
+    {"chromadb>=0.4.15" if kb_enabled else ""}
+    {"numpy>=1.24.0" if kb_enabled else ""}
+    {"scikit-learn>=1.3.0" if kb_enabled else ""}
+    gunicorn>=21.2.0
+    '''
+                
             dockerfile = f'''FROM python:3.11-slim
 
-WORKDIR /app
+    WORKDIR /app
 
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
+    ENV PYTHONUNBUFFERED=1
+    ENV PYTHONDONTWRITEBYTECODE=1
 
-RUN apt-get update \\
-    && apt-get install -y --no-install-recommends \\
-        gcc \\
-        g++ \\
-    && rm -rf /var/lib/apt/lists/*
+    RUN apt-get update \\
+        && apt-get install -y --no-install-recommends \\
+            gcc \\
+            g++ \\
+        && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+    COPY requirements.txt .
 
-RUN pip install --no-cache-dir --upgrade pip \\
-    && pip install --no-cache-dir -r requirements.txt
+    RUN pip install --no-cache-dir --upgrade pip \\
+        && pip install --no-cache-dir -r requirements.txt
 
-COPY main.py .
-COPY .env.example .env
+    COPY main.py .
+    COPY .env.example .env
 
-RUN mkdir -p vectordb logs
+    RUN mkdir -p vectordb logs
 
-EXPOSE 8000
+    EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \\
-    CMD curl -f http://localhost:8000/health || exit 1
+    HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \\
+        CMD curl -f http://localhost:8000/health || exit 1
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-'''
-            
+    CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+    '''
+                
             env_example = f'''ENVIRONMENT=production
-PORT=8000
-APP_NAME="{bot_name}"
+    PORT=8000
+    APP_NAME="{bot_name}"
 
-OPENROUTER_API_KEY=your_openrouter_api_key_here
+    OPENROUTER_API_KEY=your_openrouter_api_key_here
 
-DEFAULT_MODEL="{model}"
-DEFAULT_TEMPERATURE={temperature}
-DEFAULT_MAX_TOKENS={max_tokens}
+    DEFAULT_MODEL="{model}"
+    DEFAULT_TEMPERATURE={temperature}
+    DEFAULT_MAX_TOKENS={max_tokens}
 
-{"VOICE_ENABLED=" + str(voice_enabled).lower() if voice_enabled else ""}
-{"RESPONSE_MODE=\"" + response_mode + "\"" if voice_enabled else ""}
-{"VOICE_PROVIDER=\"" + voice_provider + "\"" if voice_enabled else ""}
-{voice_provider.upper() + "_API_KEY=your_" + voice_provider + "_api_key_here" if voice_enabled else ""}
-{"VOICE_ID=\"" + voice_config.get('voice', '') + "\"" if voice_enabled else ""}
-{"VOICE_LANGUAGE=\"" + voice_config.get('language', 'en') + "\"" if voice_enabled else ""}
-{"VOICE_SPEED=" + str(voice_config.get('speed', 1.0)) if voice_enabled else ""}
-{"VOICE_VOLUME=" + str(voice_config.get('volume', 0.8)) if voice_enabled else ""}
+    {"VOICE_ENABLED=" + str(voice_enabled).lower() if voice_enabled else ""}
+    {"RESPONSE_MODE=\"" + response_mode + "\"" if voice_enabled else ""}
+    {"VOICE_PROVIDER=\"" + voice_provider + "\"" if voice_enabled else ""}
+    {voice_provider.upper() + "_API_KEY=your_" + voice_provider + "_api_key_here" if voice_enabled else ""}
+    {"VOICE_ID=\"" + voice_config.get('voice', '') + "\"" if voice_enabled else ""}
+    {"VOICE_LANGUAGE=\"" + voice_config.get('language', 'en') + "\"" if voice_enabled else ""}
+    {"VOICE_SPEED=" + str(voice_config.get('speed', 1.0)) if voice_enabled else ""}
+    {"VOICE_VOLUME=" + str(voice_config.get('volume', 0.8)) if voice_enabled else ""}
 
-{"KNOWLEDGE_BASE_ENABLED=" + str(kb_enabled).lower() if kb_enabled else ""}
-{"EMBEDDING_MODEL=\"" + embedding_model + "\"" if kb_enabled else ""}
-{"CHUNK_SIZE=" + str(kb_config.get('chunk_size', 1000)) if kb_enabled else ""}
-{"CHUNK_OVERLAP=" + str(kb_config.get('chunk_overlap', 200)) if kb_enabled else ""}
-{"MAX_SEARCH_RESULTS=" + str(kb_config.get('max_results', 4)) if kb_enabled else ""}
-{"SIMILARITY_THRESHOLD=" + str(kb_config.get('similarity_threshold', 0.7)) if kb_enabled else ""}
+    {"KNOWLEDGE_BASE_ENABLED=" + str(kb_enabled).lower() if kb_enabled else ""}
+    {"EMBEDDING_MODEL=\"" + embedding_model + "\"" if kb_enabled else ""}
+    {"CHUNK_SIZE=" + str(kb_config.get('chunk_size', 1000)) if kb_enabled else ""}
+    {"CHUNK_OVERLAP=" + str(kb_config.get('chunk_overlap', 200)) if kb_enabled else ""}
+    {"MAX_SEARCH_RESULTS=" + str(kb_config.get('max_results', 4)) if kb_enabled else ""}
+    {"SIMILARITY_THRESHOLD=" + str(kb_config.get('similarity_threshold', 0.7)) if kb_enabled else ""}
 
-CONTEXT_WINDOW={context_window}
-RESPONSE_FORMAT="{adv_config.get('response_format', 'conversational')}"
-ERROR_HANDLING="{adv_config.get('error_handling', 'graceful')}"
+    CONTEXT_WINDOW={context_window}
+    RESPONSE_FORMAT="{adv_config.get('response_format', 'conversational')}"
+    ERROR_HANDLING="{adv_config.get('error_handling', 'graceful')}"
 
-SYSTEM_MESSAGE="{system_message.replace('"', '\\"') if system_message else ''}"
-CUSTOM_INSTRUCTIONS="{custom_instructions.replace('"', '\\"') if custom_instructions else ''}"
+    SYSTEM_MESSAGE="{system_message.replace('"', '\\"') if system_message else ''}"
+    CUSTOM_INSTRUCTIONS="{custom_instructions.replace('"', '\\"') if custom_instructions else ''}"
 
-ALLOWED_ORIGINS=*
-ALLOWED_METHODS=GET,POST,PUT,DELETE
-ALLOWED_HEADERS=*
+    ALLOWED_ORIGINS=*
+    ALLOWED_METHODS=GET,POST,PUT,DELETE
+    ALLOWED_HEADERS=*
 
-LOG_LEVEL=INFO
-LOG_FORMAT=json
-'''
-            
-            return {
-                'main.py': main_py,
-                'requirements.txt': requirements_txt,
-                'Dockerfile': dockerfile,
-                '.env.example': env_example
-            }
-            
+    LOG_LEVEL=INFO
+    LOG_FORMAT=json
+    '''
+                
+            return {{
+                    'main.py': main_py,
+                    'requirements.txt': requirements_txt,
+                    'Dockerfile': dockerfile,
+                    '.env.example': env_example
+                }}
+                
         except Exception as e:
-            st.error(f"Error generating FastAPI code: {str(e)}")
-            return None
+                return {{"error": f"Error generating FastAPI code: {str(e)}"}}
 
     def validate_bot_config(self, bot_config: Dict) -> tuple[bool, str]:
         if not bot_config.get('name', '').strip():
