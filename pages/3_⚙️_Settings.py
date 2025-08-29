@@ -470,7 +470,7 @@ def show_openrouter_config():
 
         if new_openrouter_key and new_openrouter_key != masked_key:
             if st.button("💾 Save OpenRouter Key", key="save_openrouter", type="primary"):
-                st.secrets.get("OPENROUTER_API_KEY") = new_openrouter_key
+                st.secrets.get("OPENROUTER_API_KEY") == new_openrouter_key
                 if save_user_config():
                     with st.spinner("🔄 Loading available models..."):
                         refresh_available_models()
