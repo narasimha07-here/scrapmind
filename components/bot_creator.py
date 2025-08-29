@@ -1973,7 +1973,7 @@ class VoiceSynthesizer:
             result = response.json()
             
             if "audioFile" in result:
-                audio_url = result["audioFile"].strip('[]\\'"')
+                audio_url = result["audioFile"].strip("[]\\'\"")
                 audio_response = requests.get(audio_url, timeout=30)
                 audio_response.raise_for_status()
                 return audio_response.content, "audio/wav"
