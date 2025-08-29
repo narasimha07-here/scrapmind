@@ -903,17 +903,17 @@ class VoiceConfig:
         """Generate TTS audio using Murf AI WebSocket API."""
         if not WEBSOCKETS_AVAILABLE or not PYAUDIO_AVAILABLE:
             st.error("Murf AI requires websockets and pyaudio libraries.")
-            return None
+            return None, None # Changed from return None
         
         murf_api_key = voice_config.get('api_key')
         murf_voice_id = voice_config.get('voice')
         
         if not murf_api_key:
             st.error("Murf AI API key is missing.")
-            return None
+            return None, None # Changed from return None
         if not murf_voice_id:
             st.error("Murf AI voice ID is not selected.")
-            return None
+            return None, None # Changed from return None
         
         ws_url = (
             f"{MURF_WS_URL}?api-key={murf_api_key}"
@@ -965,7 +965,7 @@ class VoiceConfig:
                             
                         if "error" in data:
                             st.error(f"Murf API returned an error: {data['error']}")
-                            return None
+                            return None, None # Changed from return None
                             
                     except asyncio.TimeoutError:
                         st.warning("Timeout waiting for audio data from Murf. No more data expected or connection dropped.")
@@ -980,22 +980,22 @@ class VoiceConfig:
             audio_content = full_audio_data.getvalue()
             if len(audio_content) == 0:
                 st.error("No audio data was received from Murf AI.")
-                return None
+                return None, None # Changed from return None
             st.success(f"Successfully received {len(audio_content)} bytes of Murf AI audio.")
-            return audio_content
-
+            return audio_content, "audio/wav" # Changed to return tuple
+            
         except websockets.exceptions.InvalidStatusCode as e:
             if e.status_code == 401:
                 st.error("Invalid Murf AI API key. Please check your credentials.")
             else:
                 st.error(f"Murf API connection failed with status code: {e.status_code}. Error: {e}")
-            return None
+            return None, None # Changed from return None
         except websockets.exceptions.ConnectionClosedError as e:
             st.error(f"Murf connection closed unexpectedly: {e}. Code: {e.code}, Reason: {e.reason}")
-            return None
+            return None, None # Changed from return None
         except Exception as e:
             st.error(f"Unexpected error during Murf AI TTS generation: {str(e)}")
-            return None
+            return None, None # Changed from return None
 
     def show_usage_and_costs(self, voice_config: Dict):
         st.markdown("#### Usage & Cost Estimation")
