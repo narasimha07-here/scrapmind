@@ -2351,46 +2351,47 @@ print(response.json())
 
                 escaped_system_message = system_message.replace('"', '\\"') if system_message else ''
                 escaped_custom_instructions = custom_instructions.replace('"', '\\"') if custom_instructions else ''
+
                 env_example = f'''ENVIRONMENT=production
-    PORT=8000
-    APP_NAME="{bot_name}"
+                PORT=8000
+                APP_NAME="{bot_name}"
 
-    OPENROUTER_API_KEY=your_openrouter_api_key_here
+                OPENROUTER_API_KEY=your_openrouter_api_key_here
 
-    DEFAULT_MODEL="{model}"
-    DEFAULT_TEMPERATURE={temperature}
-    DEFAULT_MAX_TOKENS={max_tokens}
+                DEFAULT_MODEL="{model}"
+                DEFAULT_TEMPERATURE={temperature}
+                DEFAULT_MAX_TOKENS={max_tokens}
 
-    {"VOICE_ENABLED=" + str(voice_enabled).lower() if voice_enabled else ""}
-    {"RESPONSE_MODE=\"" + response_mode + "\"" if voice_enabled else ""}
-    {"VOICE_PROVIDER=\"" + voice_provider + "\"" if voice_enabled else ""}
-    {voice_provider.upper() + "_API_KEY=your_" + voice_provider + "_api_key_here" if voice_enabled else ""}
-    {"VOICE_ID=\"" + voice_config.get('voice', '') + "\"" if voice_enabled else ""}
-    {"VOICE_LANGUAGE=\"" + voice_config.get('language', 'en') + "\"" if voice_enabled else ""}
-    {"VOICE_SPEED=" + str(voice_config.get('speed', 1.0)) if voice_enabled else ""}
-    {"VOICE_VOLUME=" + str(voice_config.get('volume', 0.8)) if voice_enabled else ""}
+                {"VOICE_ENABLED=" + str(voice_enabled).lower() if voice_enabled else ""}
+                {"RESPONSE_MODE=\"" + response_mode + "\"" if voice_enabled else ""}
+                {"VOICE_PROVIDER=\"" + voice_provider + "\"" if voice_enabled else ""}
+                {voice_provider.upper() + "_API_KEY=your_" + voice_provider + "_api_key_here" if voice_enabled else ""}
+                {"VOICE_ID=\"" + voice_config.get('voice', '') + "\"" if voice_enabled else ""}
+                {"VOICE_LANGUAGE=\"" + voice_config.get('language', 'en') + "\"" if voice_enabled else ""}
+                {"VOICE_SPEED=" + str(voice_config.get('speed', 1.0)) if voice_enabled else ""}
+                {"VOICE_VOLUME=" + str(voice_config.get('volume', 0.8)) if voice_enabled else ""}
 
-    {"KNOWLEDGE_BASE_ENABLED=" + str(kb_enabled).lower() if kb_enabled else ""}
-    {"EMBEDDING_MODEL=\"" + embedding_model + "\"" if kb_enabled else ""}
-    {"CHUNK_SIZE=" + str(kb_config.get('chunk_size', 1000)) if kb_enabled else ""}
-    {"CHUNK_OVERLAP=" + str(kb_config.get('chunk_overlap', 200)) if kb_enabled else ""}
-    {"MAX_SEARCH_RESULTS=" + str(kb_config.get('max_results', 4)) if kb_enabled else ""}
-    {"SIMILARITY_THRESHOLD=" + str(kb_config.get('similarity_threshold', 0.7)) if kb_enabled else ""}
+                {"KNOWLEDGE_BASE_ENABLED=" + str(kb_enabled).lower() if kb_enabled else ""}
+                {"EMBEDDING_MODEL=\"" + embedding_model + "\"" if kb_enabled else ""}
+                {"CHUNK_SIZE=" + str(kb_config.get('chunk_size', 1000)) if kb_enabled else ""}
+                {"CHUNK_OVERLAP=" + str(kb_config.get('chunk_overlap', 200)) if kb_enabled else ""}
+                {"MAX_SEARCH_RESULTS=" + str(kb_config.get('max_results', 4)) if kb_enabled else ""}
+                {"SIMILARITY_THRESHOLD=" + str(kb_config.get('similarity_threshold', 0.7)) if kb_enabled else ""}
 
-    CONTEXT_WINDOW={context_window}
-    RESPONSE_FORMAT="{adv_config.get('response_format', 'conversational')}"
-    ERROR_HANDLING="{adv_config.get('error_handling', 'graceful')}"
+                CONTEXT_WINDOW={context_window}
+                RESPONSE_FORMAT="{adv_config.get('response_format', 'conversational')}"
+                ERROR_HANDLING="{adv_config.get('error_handling', 'graceful')}"
 
-    SYSTEM_MESSAGE="{system_message.replace('"', '\\"') if system_message else ''}"
-    CUSTOM_INSTRUCTIONS="{custom_instructions.replace('"', '\\"') if custom_instructions else ''}"
+                SYSTEM_MESSAGE="{escaped_system_message}"
+                CUSTOM_INSTRUCTIONS="{escaped_custom_instructions}"
 
-    ALLOWED_ORIGINS=*
-    ALLOWED_METHODS=GET,POST,PUT,DELETE
-    ALLOWED_HEADERS=*
+                ALLOWED_ORIGINS=*
+                ALLOWED_METHODS=GET,POST,PUT,DELETE
+                ALLOWED_HEADERS=*
 
-    LOG_LEVEL=INFO
-    LOG_FORMAT=json 
-    '''
+                LOG_LEVEL=INFO
+                LOG_FORMAT=json 
+                '''
                 
                 return {
                     'main.py': main_py,
