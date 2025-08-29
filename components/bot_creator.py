@@ -2372,7 +2372,7 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
                 f'RESPONSE_FORMAT="{adv_config.get("response_format", "conversational")}"',
                 f'ERROR_HANDLING="{adv_config.get("error_handling", "graceful")}"',
                 "",
-                f'SYSTEM_MESSAGE="{system_message.replace('"', '\\"') if system_message else ""}"',
+                f'''SYSTEM_MESSAGE="{system_message.replace('"', '\\"')}"''',
                 f'CUSTOM_INSTRUCTIONS="{custom_instructions.replace('"', '\\"') if custom_instructions else ""}"',
                 "",
                 "ALLOWED_ORIGINS=*",
