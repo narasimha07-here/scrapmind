@@ -4,15 +4,13 @@ import os
 import sys
 import time
 import json
+import io
+import threading
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 
-# Add new imports for WebSocket and audio playback
-import asyncio
-import websockets
-import pyaudio
-import io # Already present, but ensure it's there for BytesIO
-
+# Check for required dependencies
 try:
     import requests
     REQUESTS_AVAILABLE = True
@@ -21,7 +19,6 @@ except ImportError:
 
 try:
     from gtts import gTTS
-    import io
     GTTS_AVAILABLE = True
 except ImportError:
     GTTS_AVAILABLE = False
@@ -33,11 +30,29 @@ try:
 except ImportError:
     PYDUB_AVAILABLE = False
 
-# Add new constants for Murf WebSocket
+try:
+    import websockets
+    WEBSOCKETS_AVAILABLE = True
+except ImportError:
+    WEBSOCKETS_AVAILABLE = False
+
+try:
+    import pyaudio
+    PYAUDIO_AVAILABLE = True
+except ImportError:
+    PYAUDIO_AVAILABLE = False
+
+try:
+    import asyncio
+    ASYNCIO_AVAILABLE = True
+except ImportError:
+    ASYNCIO_AVAILABLE = False
+
+# Constants for Murf WebSocket
 MURF_WS_URL = "wss://api.murf.ai/v1/speech/stream-input"
 MURF_SAMPLE_RATE = 44100
 MURF_CHANNELS = 1
-MURF_FORMAT = pyaudio.paInt16
+MURF_FORMAT = pyaudio.paInt16 if PYAUDIO_AVAILABLE else None
 
 class VoiceConfig:
     def __init__(self, data_manager=None):
@@ -101,12 +116,41 @@ class VoiceConfig:
             'pl': 'Polish'
         }
 
+    def _get_data_manager(self):
+        try:
+            if 'data_manager' in st.session_state and st.session_state.data_manager:
+                return st.session_state.data_manager
+            else:
+                from components.data_manager import DataManager
+                dm = DataManager()
+                st.session_state.data_manager = dm
+                return dm
+        except Exception as e:
+            st.warning(f"Could not get DataManager: {e}")
+            return None
+
+    def _initialize_storage_paths(self):
+        if not self.data_manager:
+            return
+        
+        try:
+            base_dir = self.data_manager.data_dir
+            self.voice_configs_dir = os.path.join(base_dir, "voice_configs")
+            self.voice_presets_dir = os.path.join(base_dir, "voice_presets")
+            
+            for directory in [self.voice_configs_dir, self.voice_presets_dir]:
+                os.makedirs(directory, exist_ok=True)
+        except Exception as e:
+            st.error(f"Error initializing voice storage paths: {e}")
+
     def _fetch_and_cache_murf_voices(self, murf_api_key: str) -> Dict[str, str]:
-        # This method remains the same as it uses the REST API to fetch voice IDs
         if not murf_api_key:
             return {"Error": "API Key is missing."}
         
-        cache_key = f"murf_voices_cache_{murf_api_key}"
+        if not REQUESTS_AVAILABLE:
+            return {"Error": "requests library not available. Install with: pip install requests"}
+        
+        cache_key = f"murf_voices_cache_{murf_api_key[:8]}"  # Use partial key for security
         if cache_key in st.session_state:
             return st.session_state[cache_key]
         
@@ -119,7 +163,6 @@ class VoiceConfig:
             voices_data = response.json()
             
             murf_voices_map = {}
-            
             voice_list = []
             
             if isinstance(voices_data, list):
@@ -206,33 +249,6 @@ class VoiceConfig:
         except Exception as e:
             return {"Error": f"Unexpected error: {str(e)}"}
 
-    def _get_data_manager(self):
-        try:
-            if 'data_manager' in st.session_state and st.session_state.data_manager:
-                return st.session_state.data_manager
-            else:
-                from components.data_manager import DataManager
-                dm = DataManager()
-                st.session_state.data_manager = dm
-                return dm
-        except Exception as e:
-            st.warning(f"Could not get DataManager: {e}")
-            return None
-
-    def _initialize_storage_paths(self):
-        if not self.data_manager:
-            return
-        
-        try:
-            base_dir = self.data_manager.data_dir
-            self.voice_configs_dir = os.path.join(base_dir, "voice_configs")
-            self.voice_presets_dir = os.path.join(base_dir, "voice_presets")
-            
-            for directory in [self.voice_configs_dir, self.voice_presets_dir]:
-                os.makedirs(directory, exist_ok=True)
-        except Exception as e:
-            st.error(f"Error initializing voice storage paths: {e}")
-
     def save_voice_config_permanently(self, voice_config: Dict) -> bool:
         if not self.data_manager or not self.user_id:
             return self.save_voice_config_fallback(voice_config)
@@ -240,24 +256,28 @@ class VoiceConfig:
         try:
             voice_config_file = os.path.join(self.voice_configs_dir, f"{self.user_id}_voice_config.json")
             
-            voice_config.update({
+            voice_config_copy = voice_config.copy()
+            voice_config_copy.update({
                 'user_id': self.user_id,
                 'last_updated': datetime.now().isoformat(),
                 'version': '1.0'
             })
             
+            # Create backup if file exists
             if os.path.exists(voice_config_file):
-                backup_file = os.path.join(self.data_manager.data_dir, "backups", f"{self.user_id}_voice_backup.json")
-                os.makedirs(os.path.dirname(backup_file), exist_ok=True)
+                backup_dir = os.path.join(self.data_manager.data_dir, "backups")
+                os.makedirs(backup_dir, exist_ok=True)
+                backup_file = os.path.join(backup_dir, f"{self.user_id}_voice_backup.json")
+                
                 import shutil
                 shutil.copy2(voice_config_file, backup_file)
             
             with open(voice_config_file, 'w', encoding='utf-8') as f:
-                json.dump(voice_config, f, indent=2, ensure_ascii=False)
+                json.dump(voice_config_copy, f, indent=2, ensure_ascii=False)
             
             st.session_state.voice_config = voice_config.copy()
             
-            if self.data_manager:
+            if hasattr(self.data_manager, 'save_all_user_data'):
                 self.data_manager.save_all_user_data(self.user_id)
             
             return True
@@ -278,19 +298,29 @@ class VoiceConfig:
                     with open(voice_config_file, 'r', encoding='utf-8') as f:
                         voice_config = json.load(f)
                     
+                    # Validate loaded config
+                    if not isinstance(voice_config, dict):
+                        raise ValueError("Invalid voice config format")
+                    
                     st.session_state.voice_config = voice_config.copy()
                     return voice_config
                     
-                except (json.JSONDecodeError, Exception) as e:
+                except (json.JSONDecodeError, ValueError) as e:
                     st.warning(f"Voice config file corrupted: {e}")
                     
-                    backup_file = os.path.join(self.data_manager.data_dir, "backups", f"{self.user_id}_voice_backup.json")
+                    # Try to restore from backup
+                    backup_dir = os.path.join(self.data_manager.data_dir, "backups")
+                    backup_file = os.path.join(backup_dir, f"{self.user_id}_voice_backup.json")
+                    
                     if os.path.exists(backup_file):
-                        with open(backup_file, 'r', encoding='utf-8') as f:
-                            voice_config = json.load(f)
-                        st.session_state.voice_config = voice_config.copy()
-                        st.info("Restored voice config from backup")
-                        return voice_config
+                        try:
+                            with open(backup_file, 'r', encoding='utf-8') as f:
+                                voice_config = json.load(f)
+                            st.session_state.voice_config = voice_config.copy()
+                            st.info("Restored voice config from backup")
+                            return voice_config
+                        except Exception:
+                            pass
             
             default_config = self.get_default_config()
             st.session_state.voice_config = default_config.copy()
@@ -335,7 +365,8 @@ class VoiceConfig:
             preset_file = os.path.join(self.voice_presets_dir, f"{self.user_id}_presets.json")
             if os.path.exists(preset_file):
                 with open(preset_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
+                    presets = json.load(f)
+                    return presets if isinstance(presets, dict) else {}
             return {}
         except Exception as e:
             st.error(f"Error loading voice presets: {e}")
@@ -348,7 +379,7 @@ class VoiceConfig:
                 st.session_state.voice_config = voice_config
                 
                 if voice_config.get('enabled'):
-                    st.success("✅ Voice configuration restored successfully!")
+                    st.success("Voice configuration restored successfully!")
         except Exception as e:
             st.warning(f"Error restoring voice config: {e}")
 
@@ -360,14 +391,14 @@ class VoiceConfig:
         
         voice_config = st.session_state.voice_config.copy()
         
-        st.markdown("### 🎙️ Voice Response Configuration")
+        st.markdown("### Voice Response Configuration")
         st.markdown("Configure text-to-speech settings for your chatbot responses")
-        st.info("🔄 **Persistent Storage**: All voice settings are automatically saved and restored across app refreshes!")
+        st.info("Persistent Storage: All voice settings are automatically saved and restored across app refreshes!")
         
         self.show_dependency_status()
         
         voice_enabled = st.checkbox(
-            "🎙️ Enable Voice Responses",
+            "Enable Voice Responses",
             value=voice_config.get('enabled', False),
             help="Generate audio responses for bot messages",
             key="voice_enabled_checkbox"
@@ -379,7 +410,7 @@ class VoiceConfig:
             self.save_voice_config_permanently(voice_config)
         
         if not voice_enabled:
-            st.info("💡 Voice responses are disabled. Users will see text-only responses.")
+            st.info("Voice responses are disabled. Users will see text-only responses.")
             return voice_config
         
         self.show_voice_configuration_tabs(voice_config)
@@ -389,11 +420,11 @@ class VoiceConfig:
 
     def show_voice_configuration_tabs(self, voice_config: Dict):
         tab1, tab2, tab3, tab4, tab5 = st.tabs([
-            "🎵 Provider & Voice",
-            "⚙️ Settings", 
-            "🎧 Preview & Test",
-            "💾 Presets",
-            "📊 Usage & Costs"
+            "Provider & Voice",
+            "Settings", 
+            "Preview & Test",
+            "Presets",
+            "Usage & Costs"
         ])
         
         with tab1:
@@ -412,7 +443,7 @@ class VoiceConfig:
             self.show_usage_and_costs(voice_config)
 
     def show_voice_presets(self, voice_config: Dict):
-        st.markdown("#### 💾 Voice Presets")
+        st.markdown("#### Voice Presets")
         st.markdown("Save and load voice configuration presets for different use cases")
         
         presets = self.load_voice_presets()
@@ -420,17 +451,17 @@ class VoiceConfig:
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("##### 💾 Save Current Configuration")
+            st.markdown("##### Save Current Configuration")
             preset_name = st.text_input(
                 "Preset Name",
                 placeholder="e.g., Professional Female, Casual Male",
                 key="voice_preset_name"
             )
             
-            if st.button("💾 Save Preset", key="save_voice_preset"):
+            if st.button("Save Preset", key="save_voice_preset"):
                 if preset_name.strip():
                     if self.save_voice_preset(preset_name.strip(), voice_config):
-                        st.success(f"✅ Preset '{preset_name}' saved successfully!")
+                        st.success(f"Preset '{preset_name}' saved successfully!")
                         st.rerun()
                     else:
                         st.error("Failed to save preset")
@@ -438,7 +469,7 @@ class VoiceConfig:
                     st.error("Please enter a preset name")
         
         with col2:
-            st.markdown("##### 📂 Load Existing Presets")
+            st.markdown("##### Load Existing Presets")
             if presets:
                 preset_options = list(presets.keys())
                 selected_preset = st.selectbox(
@@ -450,33 +481,26 @@ class VoiceConfig:
                 col2a, col2b = st.columns(2)
                 
                 with col2a:
-                    if st.button("📂 Load Preset", key="load_voice_preset"):
+                    if st.button("Load Preset", key="load_voice_preset"):
                         preset_config = presets[selected_preset]['config']
                         voice_config.update(preset_config)
                         st.session_state.voice_config = voice_config.copy()
                         self.save_voice_config_permanently(voice_config)
-                        st.success(f"✅ Preset '{selected_preset}' loaded!")
+                        st.success(f"Preset '{selected_preset}' loaded!")
                         st.rerun()
                 
                 with col2b:
-                    if st.button("🗑️ Delete Preset", key="delete_voice_preset"):
-                        if selected_preset in presets:
-                            del presets[selected_preset]
-                            try:
-                                preset_file = os.path.join(self.voice_presets_dir, f"{self.user_id}_presets.json")
-                                with open(preset_file, 'w', encoding='utf-8') as f:
-                                    json.dump(presets, f, indent=2, ensure_ascii=False)
-                                st.success(f"✅ Preset '{selected_preset}' deleted!")
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"Failed to delete preset: {e}")
+                    if st.button("Delete Preset", key="delete_voice_preset"):
+                        if self.delete_voice_preset(selected_preset):
+                            st.success(f"Preset '{selected_preset}' deleted!")
+                            st.rerun()
                         else:
-                            st.warning("Preset not found.")
+                            st.error("Failed to delete preset")
             else:
                 st.info("No saved presets found. Create your first preset above!")
         
         if presets:
-            with st.expander("📋 Preset Details", expanded=False):
+            with st.expander("Preset Details", expanded=False):
                 for name, preset_data in presets.items():
                     st.markdown(f"**{name}**")
                     config = preset_data['config']
@@ -487,12 +511,36 @@ class VoiceConfig:
                     st.markdown(f"• Created: {created}")
                     st.markdown("---")
 
+    def delete_voice_preset(self, preset_name: str) -> bool:
+        try:
+            preset_file = os.path.join(self.voice_presets_dir, f"{self.user_id}_presets.json")
+            
+            if not os.path.exists(preset_file):
+                return False
+            
+            with open(preset_file, 'r', encoding='utf-8') as f:
+                presets = json.load(f)
+            
+            if preset_name not in presets:
+                return False
+            
+            del presets[preset_name]
+            
+            with open(preset_file, 'w', encoding='utf-8') as f:
+                json.dump(presets, f, indent=2, ensure_ascii=False)
+            
+            return True
+            
+        except Exception as e:
+            st.error(f"Error deleting preset: {e}")
+            return False
+
     def configure_provider_and_voice(self, voice_config: Dict):
-        st.markdown("#### 🎵 Voice Provider Selection")
+        st.markdown("#### Voice Provider Selection")
         
         available_providers = self.get_available_providers()
         if not available_providers:
-            st.error("❌ No TTS providers available. Please install required dependencies.")
+            st.error("No TTS providers available. Please install required dependencies.")
             return
         
         provider = st.selectbox(
@@ -516,24 +564,29 @@ class VoiceConfig:
             self.configure_openai_tts(voice_config)
         elif provider == 'murf':
             self.configure_murf_tts(voice_config)
+        else:
+            st.info(f"Configuration for {provider} is not yet implemented.")
 
     def get_default_voice_for_provider(self, provider: str) -> str:
-        if provider == 'google':
-            return 'female'
-        elif provider == 'openai':
-            return 'alloy'
-        elif provider == 'murf':
-            return ''
-        return ''
+        defaults = {
+            'google': 'female',
+            'openai': 'alloy',
+            'murf': '',
+            'elevenlabs': 'rachel',
+            'azure': 'aria',
+            'amazon': 'joanna'
+        }
+        return defaults.get(provider, '')
 
     def configure_murf_tts(self, voice_config: Dict):
-        st.markdown("##### 🎙️ Murf AI Text-to-Speech")
+        st.markdown("##### Murf AI Text-to-Speech")
         
-        if not REQUESTS_AVAILABLE:
-            st.error("❌ 'requests' library not installed. Run: `pip install requests`")
+        if not WEBSOCKETS_AVAILABLE or not PYAUDIO_AVAILABLE:
+            st.error("Murf AI requires 'websockets' and 'pyaudio' libraries.")
+            st.code("pip install websockets pyaudio")
             return
         
-        st.info("💡 Murf AI provides high-quality, realistic voices. An API key is required.")
+        st.info("Murf AI provides high-quality, realistic voices. An API key is required.")
         
         murf_api_key_input = st.text_input(
             "Murf AI API Key",
@@ -545,6 +598,10 @@ class VoiceConfig:
         
         if murf_api_key_input != voice_config.get('api_key'):
             voice_config['api_key'] = murf_api_key_input
+            # Clear cached voices when API key changes
+            cache_keys_to_remove = [k for k in st.session_state.keys() if k.startswith('murf_voices_cache_')]
+            for key in cache_keys_to_remove:
+                del st.session_state[key]
             self.save_voice_config_permanently(voice_config)
         
         if not murf_api_key_input:
@@ -566,7 +623,7 @@ class VoiceConfig:
         
         try:
             current_index = voice_options_display.index(current_selection_name) if current_selection_name in voice_options_display else 0
-        except ValueError:
+        except (ValueError, TypeError):
             current_index = 0
         
         selected_voice_name_display = st.selectbox(
@@ -584,7 +641,7 @@ class VoiceConfig:
             self.save_voice_config_permanently(voice_config)
 
     def configure_voice_settings(self, voice_config: Dict):
-        st.markdown("#### 🎛️ Voice Settings")
+        st.markdown("#### Voice Settings")
         
         col1, col2, col3 = st.columns(3)
         
@@ -639,38 +696,52 @@ class VoiceConfig:
         })
 
     def show_dependency_status(self):
-        with st.expander("📦 Dependency Status", expanded=False):
+        with st.expander("Dependency Status", expanded=False):
             col1, col2 = st.columns(2)
             
             with col1:
                 st.markdown("**Available Libraries:**")
-                st.markdown(f"• requests: {'✅' if REQUESTS_AVAILABLE else '❌'}")
-                st.markdown(f"• gTTS: {'✅' if GTTS_AVAILABLE else '❌'}")
-                st.markdown(f"• pydub: {'✅' if PYDUB_AVAILABLE else '❌'}")
-                st.markdown(f"• websockets: {'✅' if 'websockets' in sys.modules else '❌'}") # Check for websockets
-                st.markdown(f"• pyaudio: {'✅' if 'pyaudio' in sys.modules else '❌'}") # Check for pyaudio
+                dependencies = [
+                    ("requests", REQUESTS_AVAILABLE),
+                    ("gTTS", GTTS_AVAILABLE),
+                    ("pydub", PYDUB_AVAILABLE),
+                    ("websockets", WEBSOCKETS_AVAILABLE),
+                    ("pyaudio", PYAUDIO_AVAILABLE),
+                    ("asyncio", ASYNCIO_AVAILABLE)
+                ]
+                
+                for name, available in dependencies:
+                    status = "✅" if available else "❌"
+                    st.markdown(f"• {name}: {status}")
             
             with col2:
                 st.markdown("**Installation Commands:**")
+                missing_deps = []
+                
                 if not GTTS_AVAILABLE:
-                    st.code("pip install gtts")
+                    missing_deps.append("gtts")
                 if not PYDUB_AVAILABLE:
-                    st.code("pip install pydub") 
+                    missing_deps.append("pydub")
                 if not REQUESTS_AVAILABLE:
-                    st.code("pip install requests")
-                if 'websockets' not in sys.modules:
-                    st.code("pip install websockets")
-                if 'pyaudio' not in sys.modules:
-                    st.code("pip install pyaudio")
+                    missing_deps.append("requests")
+                if not WEBSOCKETS_AVAILABLE:
+                    missing_deps.append("websockets")
+                if not PYAUDIO_AVAILABLE:
+                    missing_deps.append("pyaudio")
+                
+                if missing_deps:
+                    st.code(f"pip install {' '.join(missing_deps)}")
+                else:
+                    st.success("All dependencies installed!")
 
     def configure_google_tts(self, voice_config: Dict):
-        st.markdown("##### 🌐 Google Text-to-Speech (gTTS)")
+        st.markdown("##### Google Text-to-Speech (gTTS)")
         
         if not GTTS_AVAILABLE:
-            st.error("❌ gTTS library not installed. Run: `pip install gtts`")
+            st.error("gTTS library not installed. Run: `pip install gtts`")
             return
         
-        st.info("💡 Google TTS is free but requires internet connection")
+        st.info("Google TTS is free but requires internet connection")
         
         voice = st.selectbox(
             "Voice Gender",
@@ -685,8 +756,8 @@ class VoiceConfig:
             self.save_voice_config_permanently(voice_config)
 
     def configure_openai_tts(self, voice_config: Dict):
-        st.markdown("##### 🤖 OpenAI Text-to-Speech")
-        st.info("💡 OpenAI TTS provides high-quality voices. API key required.")
+        st.markdown("##### OpenAI Text-to-Speech")
+        st.info("OpenAI TTS provides high-quality voices. API key required.")
         
         api_key = st.text_input(
             "OpenAI API Key",
@@ -727,28 +798,21 @@ class VoiceConfig:
     def get_available_providers(self) -> List[str]:
         available = []
         
-        # Check for websockets and pyaudio for Murf WebSocket
-        if 'websockets' in sys.modules and 'pyaudio' in sys.modules:
+        # Only add Murf if both websockets and pyaudio are available
+        if WEBSOCKETS_AVAILABLE and PYAUDIO_AVAILABLE:
             available.append('murf')
-        else:
-            # Fallback to Murf REST if websockets/pyaudio are not available, but warn
-            if REQUESTS_AVAILABLE:
-                st.warning("Murf AI WebSocket requires 'websockets' and 'pyaudio'. Falling back to Murf REST API if available.")
-                # If you want to strictly enforce WebSocket for Murf, remove 'murf' from here
-                # and only add it if websockets and pyaudio are present.
-                # For now, keeping it to allow the user to select Murf even if WebSocket isn't fully set up.
-                # The _generate_murf_tts_audio will handle the actual WebSocket connection.
-                pass 
-
-        available.extend(['openai', 'elevenlabs', 'azure', 'amazon']) # These are placeholders for future implementation
+        
+        # Add other providers based on their dependencies
+        if REQUESTS_AVAILABLE:
+            available.extend(['openai', 'elevenlabs', 'azure', 'amazon'])
         
         if GTTS_AVAILABLE:
             available.append('google')
         
-        return available
+        return available if available else ['google']  # Fallback to google even without gtts
 
     def show_voice_preview_tab(self, voice_config: Dict):
-        st.markdown("#### 🎧 Preview & Test")
+        st.markdown("#### Preview & Test")
         
         test_text = st.text_area(
             "Test Text",
@@ -765,36 +829,83 @@ class VoiceConfig:
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("🎵 Generate Preview", type="primary", key="generate_voice_preview_button"):
-                # Use asyncio.run to run the async function in a Streamlit context
-                audio_data, audio_format = asyncio.run(self.generate_voice_preview(voice_config, test_text))
-                if audio_data:
-                    st.success("🎵 Preview generated successfully!")
-                    st.audio(audio_data, format=audio_format)
-                else:
-                    st.error("Failed to generate preview.")
+            if st.button("Generate Preview", type="primary", key="generate_voice_preview_button"):
+                self.generate_voice_preview_sync(voice_config, test_text)
         
         with col2:
-            if st.button("🧪 Test Configuration", key="test_voice_config_button"):
+            if st.button("Test Configuration", key="test_voice_config_button"):
                 self.test_voice_configuration(voice_config)
         
         with col3:
-            if st.button("💾 Save Settings", key="save_voice_settings_button"):
+            if st.button("Save Settings", key="save_voice_settings_button"):
                 if self.save_voice_config_permanently(voice_config):
-                    st.success("✅ Voice settings saved permanently!")
+                    st.success("Voice settings saved permanently!")
                     st.balloons()
                 else:
-                    st.error("❌ Failed to save settings")
+                    st.error("Failed to save settings")
         
         self.show_configuration_summary(voice_config)
 
+    def generate_voice_preview_sync(self, voice_config: Dict, text: str):
+        """Synchronous wrapper for voice preview generation."""
+        provider = voice_config.get('provider', 'google')
+        
+        try:
+            with st.spinner("Generating voice preview..."):
+                if provider == 'google' and GTTS_AVAILABLE:
+                    audio_data = self._generate_google_tts_audio(voice_config, text)
+                    if audio_data:
+                        st.success("Preview generated successfully!")
+                        st.audio(audio_data, format="audio/mp3")
+                    else:
+                        st.error("Failed to generate Google TTS audio.")
+                
+                elif provider == 'murf':
+                    if WEBSOCKETS_AVAILABLE and PYAUDIO_AVAILABLE and ASYNCIO_AVAILABLE:
+                        # Use thread pool to run async function
+                        with ThreadPoolExecutor(max_workers=1) as executor:
+                            future = executor.submit(self._run_async_murf_generation, voice_config, text)
+                            try:
+                                audio_data = future.result(timeout=30)  # 30 second timeout
+                                if audio_data:
+                                    st.success("Murf AI preview generated successfully!")
+                                    st.audio(audio_data, format="audio/wav")
+                                else:
+                                    st.error("Failed to generate Murf AI audio.")
+                            except TimeoutError:
+                                st.error("Murf AI generation timed out. Please try again.")
+                            except Exception as e:
+                                st.error(f"Error generating Murf AI audio: {str(e)}")
+                    else:
+                        st.error("Murf AI requires websockets, pyaudio, and asyncio libraries.")
+                
+                else:
+                    st.info(f"Voice generation for {provider} is not yet implemented.")
+                    
+        except Exception as e:
+            st.error(f"Error generating preview: {str(e)}")
+
+    def _run_async_murf_generation(self, voice_config: Dict, text: str) -> Optional[bytes]:
+        """Helper method to run async Murf generation in a thread."""
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                return loop.run_until_complete(self._generate_murf_tts_audio(voice_config, text))
+            finally:
+                loop.close()
+        except Exception as e:
+            st.error(f"Async Murf generation error: {str(e)}")
+            return None
+
     def show_usage_and_costs(self, voice_config: Dict):
-        st.markdown("#### 📊 Usage & Cost Estimation")
+        st.markdown("#### Usage & Cost Estimation")
         
         provider = voice_config.get('provider', 'google')
         
         col1, col2, col3, col4 = st.columns(4)
         
+        # These would typically come from actual usage tracking
         with col1:
             st.metric("Characters This Month", "12,450")
         
@@ -803,37 +914,121 @@ class VoiceConfig:
         
         with col3:
             estimated_cost = self.calculate_estimated_cost(provider, 12450)
-            st.metric("Estimated Cost", f"\${estimated_cost:.2f}")
+            st.metric("Estimated Cost", f"${estimated_cost:.2f}")
         
         with col4:
             st.metric("Requests", "156")
+        
+        # Show provider-specific cost information
+        provider_info = get_voice_provider_info(provider)
+        if provider_info:
+            with st.expander("Provider Information", expanded=False):
+                st.markdown(f"**{self.voice_providers[provider]}**")
+                st.markdown(f"• Website: {provider_info.get('website', 'N/A')}")
+                st.markdown(f"• Pricing: {provider_info.get('pricing', 'N/A')}")
+                st.markdown(f"• Free Tier: {provider_info.get('free_tier', 'N/A')}")
+                
+                features = provider_info.get('features', [])
+                if features:
+                    st.markdown("• Features:")
+                    for feature in features:
+                        st.markdown(f"  - {feature}")
 
-    async def generate_voice_preview(self, voice_config: Dict, text: str) -> Tuple[Optional[bytes], Optional[str]]:
-        provider = voice_config.get('provider', 'google')
+    async def _generate_murf_tts_audio(self, voice_config: Dict, text: str) -> Optional[bytes]:
+        """Generate TTS audio using Murf AI WebSocket API."""
+        if not WEBSOCKETS_AVAILABLE or not PYAUDIO_AVAILABLE:
+            return None
+        
+        murf_api_key = voice_config.get('api_key')
+        murf_voice_id = voice_config.get('voice')
+        
+        if not murf_api_key or not murf_voice_id:
+            return None
+        
+        # Construct WebSocket URL with parameters
+        ws_url = (
+            f"{MURF_WS_URL}?api-key={murf_api_key}"
+            f"&sample_rate={MURF_SAMPLE_RATE}"
+            f"&channel_type=MONO&format=WAV"
+        )
+        
+        full_audio_data = io.BytesIO()
         
         try:
-            if provider == 'google' and GTTS_AVAILABLE:
-                audio_data = self._generate_google_tts_audio(voice_config, text)
-                return audio_data, "audio/mp3" if audio_data else None
+            # Import websockets here to avoid issues if not available
+            import websockets
             
-            elif provider == 'murf': # No need for REQUESTS_AVAILABLE check here, _generate_murf_tts_audio will handle it
-                audio_data = await self._generate_murf_tts_audio(voice_config, text) # AWAIT ADDED HERE
-                return audio_data, "audio/wav" if audio_data else None # Murf WebSocket outputs WAV
+            async with websockets.connect(ws_url, timeout=15) as ws:
+                # Send voice configuration
+                voice_config_msg = {
+                    "voice_config": {
+                        "voiceId": murf_voice_id,
+                        "style": "Conversational",
+                        "rate": int((voice_config.get('speed', 1.0) - 1.0) * 100),  # Convert to Murf range
+                        "pitch": voice_config.get('pitch', 0),
+                        "variation": 1
+                    }
+                }
+                await ws.send(json.dumps(voice_config_msg))
+
+                # Send text for synthesis
+                text_msg = {
+                    "text": text,
+                    "end": True
+                }
+                await ws.send(json.dumps(text_msg))
+
+                # Receive audio data
+                while True:
+                    try:
+                        response = await asyncio.wait_for(ws.recv(), timeout=5.0)
+                        data = json.loads(response)
+                        
+                        if "audio" in data and data["audio"]:
+                            audio_bytes = base64.b64decode(data["audio"])
+                            full_audio_data.write(audio_bytes)
+                        
+                        if data.get("final", False):
+                            break
+                            
+                        if "error" in data:
+                            st.error(f"Murf API error: {data['error']}")
+                            return None
+                            
+                    except asyncio.TimeoutError:
+                        st.warning("Timeout waiting for audio data from Murf")
+                        break
+                    except json.JSONDecodeError as e:
+                        st.error(f"Invalid JSON response from Murf: {e}")
+                        break
             
+            audio_content = full_audio_data.getvalue()
+            return audio_content if len(audio_content) > 0 else None
+
+        except websockets.exceptions.InvalidStatusCode as e:
+            if e.status_code == 401:
+                st.error("Invalid Murf AI API key. Please check your credentials.")
             else:
-                st.info(f"💡 Voice generation for {provider} is not yet implemented or dependencies are missing.")
-                return None, None
-                
+                st.error(f"Murf API connection failed: HTTP {e.status_code}")
+            return None
+        except websockets.exceptions.ConnectionClosedError as e:
+            st.error(f"Murf connection closed unexpectedly: {e}")
+            return None
         except Exception as e:
-            st.error(f"Error generating preview: {str(e)}")
-            return None, None
+            st.error(f"Unexpected error with Murf AI: {str(e)}")
+            return None
 
     def _generate_google_tts_audio(self, voice_config: Dict, text: str) -> Optional[bytes]:
+        """Generate TTS audio using Google Text-to-Speech."""
         if not GTTS_AVAILABLE:
             return None
         
         try:
             language = voice_config.get('language', 'en')
+            
+            # Validate language code
+            if language not in self.languages:
+                language = 'en'
             
             tts = gTTS(text=text, lang=language, slow=False)
             
@@ -847,122 +1042,81 @@ class VoiceConfig:
             st.error(f"Google TTS error: {str(e)}")
             return None
 
-    async def _generate_murf_tts_audio(self, voice_config: Dict, text: str) -> Optional[bytes]:
-        if 'websockets' not in sys.modules or 'pyaudio' not in sys.modules:
-            st.error("❌ 'websockets' and 'pyaudio' libraries are required for Murf AI WebSocket. Please install them.")
-            return None
-        
-        murf_api_key = voice_config.get('api_key')
-        murf_voice_id = voice_config.get('voice')
-        
-        if not murf_api_key:
-            st.error("Murf AI API Key is not configured.")
-            return None
-        
-        if not murf_voice_id:
-            st.error("Murf AI Voice ID is not selected. Please select a specific voice.")
-            return None
-        
-        # Construct WebSocket URL with parameters
-        ws_url = (
-            f"{MURF_WS_URL}?api-key={murf_api_key}"
-            f"&sample_rate={MURF_SAMPLE_RATE}"
-            f"&channel_type=MONO&format=WAV"
-        )
-        
-        full_audio_data = io.BytesIO()
-        first_chunk = True
-
-        try:
-            async with websockets.connect(ws_url) as ws:
-                # Send voice config first
-                voice_config_msg = {
-                    "voice_config": {
-                        "voiceId": murf_voice_id,
-                        "style": "Conversational", # Default style, can be made configurable
-                        "rate": int((voice_config.get('speed', 1.0) - 1.0) * 100), # Convert 0.25-2.0 to -75 to 100
-                        "pitch": voice_config.get('pitch', 0),
-                        "variation": 1 # Default variation
-                    }
-                }
-                await ws.send(json.dumps(voice_config_msg))
-
-                # Send text
-                text_msg = {
-                    "text": text,
-                    "end": True # This will close the context after this text
-                }
-                await ws.send(json.dumps(text_msg))
-
-                while True:
-                    response = await ws.recv()
-                    data = json.loads(response)
-                    
-                    if "audio" in data:
-                        audio_bytes = base64.b64decode(data["audio"])
-                        # Murf WebSocket sends WAV header only in the first chunk
-                        if first_chunk and len(audio_bytes) > 44:
-                            audio_bytes = audio_bytes[44:] # Strip WAV header
-                            first_chunk = False
-                        full_audio_data.write(audio_bytes)
-                    
-                    if data.get("final"):
-                        break
-            
-            full_audio_data.seek(0)
-            return full_audio_data.getvalue()
-
-        except websockets.exceptions.ConnectionClosedOK:
-            st.info("Murf AI WebSocket connection closed gracefully.")
-            full_audio_data.seek(0)
-            return full_audio_data.getvalue()
-        except websockets.exceptions.WebSocketException as e:
-            st.error(f"Murf AI WebSocket error: {e}")
-            return None
-        except Exception as e:
-            st.error(f"An unexpected error occurred during Murf AI audio generation: {e}")
-            return None
-
     def test_voice_configuration(self, voice_config: Dict):
+        """Test the current voice configuration."""
         provider = voice_config.get('provider')
         api_key_to_check = voice_config.get('api_key')
         
-        if provider in ['elevenlabs', 'murf', 'azure', 'amazon'] and not api_key_to_check:
-            st.error("❌ API key required for testing this provider")
+        # Check if API key is required and present
+        providers_requiring_api = ['elevenlabs', 'openai', 'murf', 'azure', 'amazon']
+        if provider in providers_requiring_api and not api_key_to_check:
+            st.error("API key required for testing this provider")
             return
         
-        with st.spinner("🧪 Testing configuration..."):
-            time.sleep(1)
-            st.success("✅ Configuration test passed!")
+        with st.spinner("Testing configuration..."):
+            test_results = self._perform_configuration_test(voice_config)
         
+        if test_results['success']:
+            st.success("Configuration test passed!")
+        else:
+            st.error(f"Configuration test failed: {test_results['error']}")
+        
+        # Show test details
         st.markdown("**Test Results:**")
         st.markdown(f"• Provider: {self.voice_providers[provider]}")
         st.markdown(f"• Voice: {voice_config.get('voice', 'N/A')}")
         st.markdown(f"• Language: {self.languages.get(voice_config.get('language', 'en'))}")
         st.markdown(f"• Speed: {voice_config.get('speed', 1.0)}x")
         
-        if provider == 'google':
-            st.markdown("• Connection: ✅ Internet available")
-        elif provider == 'murf':
-            murf_api_key = voice_config.get('api_key')
-            if murf_api_key and 'websockets' in sys.modules and 'pyaudio' in sys.modules:
-                try:
-                    # Attempt a small synthesis to validate the key
-                    test_text = "This is a quick test."
-                    audio_data, audio_format = asyncio.run(self.generate_voice_preview(voice_config, test_text))
-                    if audio_data:
-                        st.markdown("• Murf API: ✅ Authentication successful (audio generated)")
-                    else:
-                        st.markdown("• Murf API: ⚠️ Authentication successful, but audio generation failed. Check voice ID or other parameters.")
-                except Exception as e:
-                    st.markdown(f"• Murf API: ❌ Authentication failed: {e}")
+        for key, value in test_results.get('details', {}).items():
+            st.markdown(f"• {key}: {value}")
+
+    def _perform_configuration_test(self, voice_config: Dict) -> Dict:
+        """Perform actual configuration testing."""
+        provider = voice_config.get('provider', 'google')
+        results = {'success': False, 'error': '', 'details': {}}
+        
+        try:
+            if provider == 'google':
+                if GTTS_AVAILABLE:
+                    results['success'] = True
+                    results['details']['Connection'] = "Internet available"
+                else:
+                    results['error'] = "gTTS library not available"
+                    
+            elif provider == 'murf':
+                if not WEBSOCKETS_AVAILABLE or not PYAUDIO_AVAILABLE:
+                    results['error'] = "Missing required libraries (websockets, pyaudio)"
+                elif not voice_config.get('api_key'):
+                    results['error'] = "API key not configured"
+                elif not voice_config.get('voice'):
+                    results['error'] = "Voice ID not selected"
+                else:
+                    results['success'] = True
+                    results['details']['API Key'] = "Configured"
+                    results['details']['Voice ID'] = "Selected"
+                    results['details']['WebSocket'] = "Available"
+                    
+            elif provider == 'openai':
+                if not REQUESTS_AVAILABLE:
+                    results['error'] = "requests library not available"
+                elif not voice_config.get('api_key'):
+                    results['error'] = "OpenAI API key not configured"
+                else:
+                    results['success'] = True
+                    results['details']['API Key'] = "Configured"
+                    
             else:
-                st.markdown("• Murf API: ⚠️ API key or 'websockets'/'pyaudio' libraries missing for full test.")
-        else:
-            st.markdown("• API: ✅ Authentication successful")
+                results['error'] = f"Provider {provider} not yet implemented"
+                
+        except Exception as e:
+            results['error'] = f"Test failed with exception: {str(e)}"
+        
+        return results
 
     def show_configuration_summary(self, voice_config: Dict):
-        with st.expander("📋 Configuration Summary", expanded=False):
+        """Display a summary of the current voice configuration."""
+        with st.expander("Configuration Summary", expanded=False):
             provider = voice_config.get('provider', 'google')
             
             col1, col2 = st.columns(2)
@@ -979,27 +1133,30 @@ class VoiceConfig:
                 st.markdown(f"• Speed: {voice_config.get('speed', 1.0)}x")
                 st.markdown(f"• Volume: {voice_config.get('volume', 0.8)}")
                 st.markdown(f"• Pitch: {voice_config.get('pitch', 0)} semitones")
-                st.markdown(f"• Auto-play: {'✅' if voice_config.get('auto_play') else '❌'}")
+                auto_play = "Yes" if voice_config.get('auto_play') else "No"
+                st.markdown(f"• Auto-play: {auto_play}")
 
     def calculate_estimated_cost(self, provider: str, characters: int) -> float:
+        """Calculate estimated cost based on provider and character count."""
         cost_per_1k = {
             'openai': 0.015,
             'elevenlabs': 0.30,
             'google': 0.0,
             'azure': 0.004,
             'amazon': 0.004,
-            'murf': 0.05 # This is a placeholder, Murf pricing is subscription-based
+            'murf': 0.05  # Placeholder - Murf uses subscription model
         }
         
         rate = cost_per_1k.get(provider, 0.01)
         return (characters / 1000) * rate
 
     def get_default_config(self) -> Dict:
+        """Get default voice configuration."""
         return {
             'enabled': False,
-            'provider': 'murf',
+            'provider': 'google',  # Default to most accessible provider
             'api_key': '',
-            'voice': '',
+            'voice': 'female',
             'language': 'en',
             'speed': 1.0,
             'volume': 0.8,
@@ -1015,14 +1172,58 @@ class VoiceConfig:
             'test_text': "Hello! I'm your AI assistant. How can I help you today?"
         }
 
+    def generate_tts_audio(self, text: str, voice_config: Optional[Dict] = None) -> Tuple[Optional[bytes], Optional[str]]:
+        """Main method to generate TTS audio based on configuration."""
+        if not voice_config:
+            voice_config = st.session_state.get('voice_config', self.get_default_config())
+        
+        if not voice_config.get('enabled', False):
+            return None, None
+        
+        provider = voice_config.get('provider', 'google')
+        
+        try:
+            if provider == 'google' and GTTS_AVAILABLE:
+                audio_data = self._generate_google_tts_audio(voice_config, text)
+                return audio_data, "audio/mp3"
+                
+            elif provider == 'murf' and WEBSOCKETS_AVAILABLE and PYAUDIO_AVAILABLE:
+                # Use thread pool for async operation
+                with ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(self._run_async_murf_generation, voice_config, text)
+                    try:
+                        audio_data = future.result(timeout=30)
+                        return audio_data, "audio/wav"
+                    except TimeoutError:
+                        st.error("TTS generation timed out")
+                        return None, None
+            
+            elif provider == 'openai':
+                # Placeholder for OpenAI TTS implementation
+                st.info("OpenAI TTS implementation coming soon")
+                return None, None
+                
+            else:
+                st.warning(f"TTS provider '{provider}' not available or not implemented")
+                return None, None
+                
+        except Exception as e:
+            st.error(f"Error generating TTS audio: {str(e)}")
+            return None, None
+
 def get_voice_config():
+    """Get or create VoiceConfig instance."""
     try:
         if 'voice_config_manager' not in st.session_state:
             data_manager = st.session_state.get('data_manager')
             if not data_manager:
-                from components.data_manager import DataManager
-                data_manager = DataManager()
-                st.session_state.data_manager = data_manager
+                try:
+                    from components.data_manager import DataManager
+                    data_manager = DataManager()
+                    st.session_state.data_manager = data_manager
+                except ImportError:
+                    st.warning("DataManager not available. Using fallback storage.")
+                    data_manager = None
             
             st.session_state.voice_config_manager = VoiceConfig(data_manager=data_manager)
         
@@ -1033,6 +1234,7 @@ def get_voice_config():
         return VoiceConfig()
 
 def auto_save_voice_config():
+    """Automatically save voice configuration."""
     try:
         if 'voice_config_manager' in st.session_state:
             voice_manager = st.session_state.voice_config_manager
@@ -1042,6 +1244,7 @@ def auto_save_voice_config():
         st.warning(f"Auto-save voice config failed: {e}")
 
 def get_voice_provider_info(provider: str) -> Dict:
+    """Get information about a specific voice provider."""
     provider_info = {
         'google': {
             'website': 'https://cloud.google.com/text-to-speech',
@@ -1066,8 +1269,53 @@ def get_voice_provider_info(provider: str) -> Dict:
             'pricing': 'Subscription-based (various tiers)',
             'free_tier': 'Limited free trial',
             'features': ['Studio-quality voices', 'Advanced editing', 'Voice customization', 'Multi-language support']
+        },
+        'azure': {
+            'website': 'https://azure.microsoft.com/en-us/services/cognitive-services/text-to-speech/',
+            'pricing': '$4.00 per 1M characters',
+            'free_tier': '5M characters/month',
+            'features': ['Neural voices', 'SSML support', 'Custom voices', 'Multiple languages']
+        },
+        'amazon': {
+            'website': 'https://aws.amazon.com/polly/',
+            'pricing': '$4.00 per 1M characters',
+            'free_tier': '5M characters/month (first year)',
+            'features': ['Natural sounding', 'Real-time streaming', 'Speech marks', 'Multiple formats']
         }
     }
     
     return provider_info.get(provider, {})
 
+def validate_voice_config(voice_config: Dict) -> Tuple[bool, List[str]]:
+    """Validate voice configuration and return validation results."""
+    errors = []
+    
+    if not isinstance(voice_config, dict):
+        return False, ["Voice config must be a dictionary"]
+    
+    # Check required fields
+    required_fields = ['enabled', 'provider']
+    for field in required_fields:
+        if field not in voice_config:
+            errors.append(f"Missing required field: {field}")
+    
+    # Validate provider
+    valid_providers = ['google', 'openai', 'murf', 'elevenlabs', 'azure', 'amazon']
+    if voice_config.get('provider') not in valid_providers:
+        errors.append(f"Invalid provider: {voice_config.get('provider')}")
+    
+    # Validate language
+    valid_languages = ['en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'ja', 'ko', 'zh', 'hi', 'ar', 'nl', 'sv', 'no', 'da', 'pl']
+    if voice_config.get('language', 'en') not in valid_languages:
+        errors.append(f"Invalid language: {voice_config.get('language')}")
+    
+    # Validate numeric ranges
+    speed = voice_config.get('speed', 1.0)
+    if not isinstance(speed, (int, float)) or not (0.25 <= speed <= 2.0):
+        errors.append("Speed must be between 0.25 and 2.0")
+    
+    volume = voice_config.get('volume', 0.8)
+    if not isinstance(volume, (int, float)) or not (0.1 <= volume <= 1.0):
+        errors.append("Volume must be between 0.1 and 1.0")
+    
+    return len(errors) == 0, errors
