@@ -685,7 +685,7 @@ class ChatInterface:
         provider = voice_config.get('provider', 'murf')
         
         try:
-            audio_data, audio_format = self.voice_config_manager.generate_voice_preview(voice_config, text)
+            audio_data, audio_format = self.voice_config_manager.generate_voice_preview_sync(voice_config, text)
             return audio_data, audio_format
                 
         except Exception as e:
