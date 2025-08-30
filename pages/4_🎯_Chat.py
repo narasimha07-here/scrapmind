@@ -659,7 +659,7 @@ def show_share_link():
         return
 
     base_url = "https://scrapmind.streamlit.app"
-    share_link = f"{base_url}/pages/4_🎯_Chat.py?bot_id={st.session_state.current_bot}"
+    share_link = f"{base_url}/pages/Chat?bot_id={st.session_state.current_bot}"
 
     with st.expander("🔗 Share This Chat", expanded=True):
         st.markdown("**Direct Chat Link:**")
