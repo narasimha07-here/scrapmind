@@ -587,6 +587,3 @@ def display_storage_info():
 def on_data_change():
     if st.session_state.get('authenticated'):
         save_user_data()
-
-if __name__ == "__main__":
-    main()
